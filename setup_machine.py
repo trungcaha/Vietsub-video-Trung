@@ -41,6 +41,7 @@ PIPELINE_PACKAGES = [
     "faster-whisper",
     "rapidocr-onnxruntime",
     "edge-tts",
+    "gTTS",
     "numpy",
     "Pillow",
     "yt-dlp",
@@ -380,6 +381,11 @@ def run_doctor(project_dir: Optional[str] = None) -> int:
         print("[OK] Gói Python pipeline: Đủ faster-whisper, rapidocr-onnxruntime, edge-tts, numpy, Pillow, yt-dlp")
     else:
         print(f"[WARN] Gói Python pipeline còn thiếu trong {Path(sys.executable).name}: {', '.join(missing_pkgs)}")
+    gtts_ok = importlib.util.find_spec("gtts") is not None
+    print(
+        f"[{'OK' if gtts_ok else 'INFO'}] Tùy chọn cứu hộ TTS (gTTS): "
+        f"{'Đã cài' if gtts_ok else 'Chưa cài (tùy chọn — cài `pip install gTTS` để bật tầng cứu hộ 11)'}"
+    )
 
     # 8. Installed skill & AGENTS.md trigger
     skill_ok = (SKILL_DST / "SKILL.md").is_file() and (SKILL_DST / "vendor" / "MediaCrawler" / "main.py").is_file()

@@ -19,7 +19,7 @@
    - Chia `offset` và `duration` của `WordBoundary` cho `10_000_000.0` để ra giây.
    - `warmup_tts()` phải chạy hết tất cả các giọng (dùng `break` trong vòng retry, không `return` sớm).
    - Chống treo WebSocket half-open (`aiohttp` `sock_read` không giới hạn `ws_connect`): luôn truyền `connect_timeout`/`receive_timeout` và bọc `c.stream()` bằng `asyncio.wait_for(..., timeout=20.0)` (warmup `12.0s`), kèm `timeout=` cho mọi `subprocess.run`.
-   - Retry 3 tầng (`max_retries=10`: `WordBoundary` -> `SentenceBoundary` -> `SentenceBoundary` `+0%`/`+0Hz` khi câu ngắn + `pitch != 0Hz` gặp `NoAudioReceived`), dùng weighted character timing khi `not wb_words`; kẹp tốc độ `atempo <= 1.48`; khớp từ hiển thị bằng `difflib.SequenceMatcher`.
+   - Smart Boundary (`word_count <= 4` bỏ qua `WordBoundary`, vào thẳng `SentenceBoundary`), 10 tầng retry với backoff lũy tiến `(1.0..15.0s)` + đổi giọng dự phòng (`HoaiMy` <-> `NamMinh`) + tầng 11 `gTTS` tùy chọn (`try: from gtts import gTTS` + `asyncio.to_thread`, timeout `20.0s`); cache hit không ngủ (`sleep(0.32)` chỉ sau request mạng); dùng weighted character timing khi `not wb_words`; kẹp tốc độ `atempo <= 1.48`; khớp từ hiển thị bằng `difflib.SequenceMatcher`.
 5. **FFmpeg filter `ass=` trên Windows:**
    - Luôn chạy `subprocess.run(..., cwd=str(tmp_ep))` và dùng tên tương đối `ass=vi_karaoke.ass` để tránh lỗi phân tích dấu `:` của đường dẫn ổ đĩa Windows.
 6. **Ưu tiên metadata gốc từ `_zh.json` ở Bước 4:**

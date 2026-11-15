@@ -160,12 +160,11 @@ async def tts_segment_with_retry(
     words_json_path: Path,
     max_retries: int = 10,
 ) -> List[Dict[str, Any]]:
-    """Synthesize Vietnamese TTS via edge-tts with SentenceBoundary fallback.
+    """Synthesize Vietnamese TTS via edge-tts with Smart Boundary, cooldown, alt voice & gTTS fallback.
 
-    Short or punctuated utterances with non-zero pitch occasionally return
-    NoAudioReceived under WordBoundary; wrap every WebSocket stream in a strict
-    asyncio.wait_for timeout (aiohttp sock_read does not bound ws_connect) and
-    fall back to SentenceBoundary and neutral prosody before failing.
+    Short utterances (<=4 words) bypass WordBoundary to avoid Edge WebSocket burst
+    limits; progressive backoffs escape IP-level throttling; gTTS rescues rare
+    total edge-tts refusals so batch renders finish uninterrupted.
     """
     if mp3_path.exists() and mp3_path.stat().st_size > 200 and words_json_path.exists():
         return json.loads(words_json_path.read_text(encoding="utf-8"))
@@ -175,40 +174,57 @@ async def tts_segment_with_retry(
     if not clean_tts:
         clean_tts = "."
 
+    prim_voice = role_cfg["voice"]
+    alt_voice = (
+        "vi-VN-NamMinhNeural"
+        if prim_voice == "vi-VN-HoaiMyNeural"
+        else "vi-VN-HoaiMyNeural"
+    )
     base_rate = role_cfg.get("rate", "+0%")
     base_pitch = role_cfg.get("pitch", "+0Hz")
+    stripped_tail = re.sub(r"[,;:\-—….!?]+$", "", clean_tts).strip()
+    stripped = stripped_tail if any(ch.isalnum() for ch in stripped_tail) else clean_tts
+    alpha_only = re.sub(
+        r"\s+", " ", re.sub(r"[^\w\s]", " ", clean_tts, flags=re.UNICODE)
+    ).strip()
+    safe_alpha = alpha_only if any(ch.isalnum() for ch in alpha_only) else "ừ"
+    word_count = len(clean_tts.split())
+
+    if word_count <= 4:
+        head_tiers = [
+            (prim_voice, base_rate, base_pitch, "SentenceBoundary", clean_tts),
+            (prim_voice, base_rate, base_pitch, "SentenceBoundary", clean_tts),
+            (prim_voice, base_rate, base_pitch, "SentenceBoundary", stripped),
+            (prim_voice, "+0%", "+0Hz", "SentenceBoundary", clean_tts),
+            (prim_voice, "+0%", "+0Hz", "SentenceBoundary", safe_alpha),
+        ]
+    else:
+        head_tiers = [
+            (prim_voice, base_rate, base_pitch, "WordBoundary", clean_tts),
+            (prim_voice, base_rate, base_pitch, "WordBoundary", stripped),
+            (prim_voice, base_rate, base_pitch, "SentenceBoundary", clean_tts),
+            (prim_voice, base_rate, base_pitch, "SentenceBoundary", clean_tts),
+            (prim_voice, "+0%", "+0Hz", "SentenceBoundary", clean_tts),
+        ]
+
+    tail_tiers = [
+        (prim_voice, "+0%", "+0Hz", "SentenceBoundary", safe_alpha),
+        (alt_voice, base_rate, "+0Hz", "SentenceBoundary", clean_tts),
+        (alt_voice, "+0%", "+0Hz", "SentenceBoundary", clean_tts),
+        (alt_voice, "+0%", "+0Hz", "SentenceBoundary", safe_alpha),
+        (prim_voice, "+0%", "+0Hz", "SentenceBoundary", safe_alpha + "."),
+    ]
+    tiers = (head_tiers + tail_tiers)[: max(1, max_retries)]
+    backoffs = (1.0, 1.8, 2.8, 4.0, 5.5, 7.5, 10.0, 12.0, 14.0, 15.0)
 
     last_err = ""
-    for attempt in range(max_retries):
-        if attempt < 3:
-            boundary = "WordBoundary"
-            rate = base_rate
-            pitch = base_pitch
-            tts_input = clean_tts
-            if attempt == 2:
-                stripped = re.sub(r"[,;:\-—….!?]+$", "", clean_tts).strip()
-                if any(ch.isalnum() for ch in stripped):
-                    tts_input = stripped
-        elif attempt < 7:
-            boundary = "SentenceBoundary"
-            rate = base_rate
-            pitch = base_pitch
-            tts_input = clean_tts
-        else:
-            boundary = "SentenceBoundary"
-            rate = "+0%"
-            pitch = "+0Hz"
-            alpha_only = re.sub(
-                r"\s+", " ", re.sub(r"[^\w\s]", " ", clean_tts, flags=re.UNICODE)
-            ).strip()
-            tts_input = alpha_only if any(ch.isalnum() for ch in alpha_only) else "ừ"
-
+    for attempt, (voice, rate, pitch, boundary, tts_input) in enumerate(tiers):
         try:
             words: List[Dict[str, Any]] = []
             audio_chunks = bytearray()
             c = edge_tts.Communicate(
                 tts_input,
-                voice=role_cfg["voice"],
+                voice=voice,
                 rate=rate,
                 pitch=pitch,
                 boundary=boundary,
@@ -235,18 +251,45 @@ async def tts_segment_with_retry(
                 words_json_path.write_text(
                     json.dumps(words, ensure_ascii=False), encoding="utf-8"
                 )
+                await asyncio.sleep(0.32)
                 return words
             last_err = f"Audio too short ({len(audio_chunks)} bytes)"
         except Exception as e:
             last_err = repr(e)
         print(
-            f"    [TTS retry {attempt + 1}/{max_retries}] seg={mp3_path.stem}: {last_err}",
+            f"    [TTS retry {attempt + 1}/{len(tiers)}] seg={mp3_path.stem} "
+            f"({voice}, {boundary}): {last_err}",
             flush=True,
         )
-        await asyncio.sleep(0.25 + min(attempt, 4) * 0.35)
+        await asyncio.sleep(backoffs[min(attempt, len(backoffs) - 1)])
+
+    # Tầng cứu hộ thứ 11: gTTS độc lập nếu toàn bộ edge-tts thất bại (tùy chọn)
+    try:
+        from gtts import gTTS
+
+        fallback_txt = clean_tts if any(ch.isalnum() for ch in clean_tts) else "ừ"
+
+        def _synth_gtts() -> bytes:
+            buf = io.BytesIO()
+            gTTS(fallback_txt, lang="vi").write_to_fp(buf)
+            return buf.getvalue()
+
+        gtts_bytes = await asyncio.wait_for(asyncio.to_thread(_synth_gtts), timeout=20.0)
+        if len(gtts_bytes) > 200:
+            mp3_path.write_bytes(gtts_bytes)
+            words_json_path.write_text("[]", encoding="utf-8")
+            print(
+                f"    [TTS fallback gTTS] seg={mp3_path.stem}: {len(gtts_bytes)} bytes",
+                flush=True,
+            )
+            await asyncio.sleep(0.32)
+            return []
+        last_err = f"{last_err} | gTTS audio too short ({len(gtts_bytes)} bytes)"
+    except Exception as ge:
+        last_err = f"{last_err} | gTTS: {repr(ge)}"
 
     raise RuntimeError(
-        f"edge-tts thất bại sau {max_retries} lần cho câu '{clean_tts[:40]}': {last_err}"
+        f"edge-tts & gTTS thất bại sau {len(tiers)} lần cho câu '{clean_tts[:40]}': {last_err}"
     )
 
 
@@ -759,7 +802,6 @@ async def process_one_episode(
         mp3_p = tmp_ep / f"seg_{sid:03d}.mp3"
         wb_p = tmp_ep / f"seg_{sid:03d}.words.json"
         wb_words = await tts_segment_with_retry(vi_text, roles_cfg[role], mp3_p, wb_p)
-        await asyncio.sleep(0.12)
 
         slot_start = max(zh_start, prev_actual_end + 0.03)
         if i + 1 < len(segments):
