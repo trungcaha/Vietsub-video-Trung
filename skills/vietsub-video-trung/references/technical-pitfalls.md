@@ -45,18 +45,22 @@ Tài liệu này giải thích nguyên nhân gốc rễ, triệu chứng và cá
 
 ---
 
-## 4. `edge-tts`: `pitch` dùng `Hz`, `WordBoundary`, warmup, retry & `SequenceMatcher`
+## 4. `edge-tts`: `pitch` dùng `Hz`, `WordBoundary`, fallback `SentenceBoundary`, warmup, retry & `SequenceMatcher`
 
 - **Hiện tượng lỗi:**
   - Truyền `pitch="+10%"` vào `edge_tts.Communicate` gây lỗi WebSocket `NoAudioReceived` (Microsoft TTS chỉ nhận `Hz`, ví dụ `-10Hz`, `+18Hz`).
+  - Câu thoại ngắn hoặc có dấu câu cuối kết hợp `pitch != +0Hz` (như `"Được rồi,"`) đôi khi khiến Microsoft TTS trả về rỗng `NoAudioReceived` khi bật `boundary="WordBoundary"`.
   - `warmup_tts()` dùng `return` sớm trong vòng lặp giọng khiến giọng thứ 2 chưa được khởi động kết nối.
   - Câu dịch có dấu câu/số khiến số token `display_tokens` khác số `WordBoundary` từ TTS -> lệch chữ khi quét `\kf`.
   - Tua âm quá `1.5x` làm giọng bị méo robot.
 - **Cách xử lý chuẩn:**
   1. Validate toàn bộ `roles.*.pitch` phải kết thúc bằng `Hz`.
   2. `warmup_tts()` duyệt hết danh sách giọng duy nhất, dùng `break` (không `return`) khi nhận chunk audio đầu tiên.
-  3. `WordBoundary` quy đổi giây bằng `offset / 10_000_000.0` và `duration / 10_000_000.0`; retry tối đa 8 lần với backoff `0.5 + attempt * 0.6`.
-  4. Khớp `display_tokens` với `wb_words` qua `difflib.SequenceMatcher(a=d_norm, b=w_norm, autojunk=False)` và nội suy tuyến tính các từ còn thiếu.
+  3. `WordBoundary` quy đổi giây bằng `offset / 10_000_000.0` và `duration / 10_000_000.0`; áp dụng **retry 3 tầng** (8 lần, backoff `0.25 + min(attempt, 4) * 0.35`):
+     - `attempt < 3`: `boundary="WordBoundary"` giữ `(rate, pitch)` của vai (`attempt == 2` strip dấu câu cuối `[,;:\-—….!?]+$` nếu còn ký tự chữ/số).
+     - `attempt 3..5`: fallback sang `boundary="SentenceBoundary"`, giữ nguyên `(rate, pitch)` của vai (`words_json` lưu `[]`).
+     - `attempt >= 6`: `boundary="SentenceBoundary"`, đưa về `rate="+0%"`, `pitch="+0Hz"`, lọc chỉ giữ ký tự chữ/số + khoảng trắng (fallback `"ừ"` nếu rỗng).
+  4. Khi `wb_words` có dữ liệu, khớp `display_tokens` qua `difflib.SequenceMatcher(a=d_norm, b=w_norm, autojunk=False)` và nội suy tuyến tính; khi `not wb_words` (fallback `SentenceBoundary`), `align_display_words` phân bổ `seg_dur` theo **weighted character timing** (`max(2.0, float(len(norm_token(tok)) or len(tok))) + (1.2 if tok[-1] in ",.!?;:" else 0.0)`), giữ đơn điệu và ép `out[-1]["end"] = seg_dur`.
   5. Nếu `raw_dur > avail`, tính `speed = min(atempo_max, raw_dur / avail)` với `atempo_max = 1.48`, nhân chia ngược `w["start"]`, `w["end"]` theo `actual_speed` thực tế của WAV sau `atempo`.
 
 ---

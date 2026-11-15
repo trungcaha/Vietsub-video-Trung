@@ -148,6 +148,12 @@ async def tts_segment_with_retry(
     words_json_path: Path,
     max_retries: int = 8,
 ) -> List[Dict[str, Any]]:
+    """Synthesize Vietnamese TTS via edge-tts with SentenceBoundary fallback.
+
+    Short or punctuated utterances with non-zero pitch occasionally return
+    NoAudioReceived under WordBoundary; fall back to SentenceBoundary and
+    neutral prosody before failing.
+    """
     if mp3_path.exists() and mp3_path.stat().st_size > 200 and words_json_path.exists():
         return json.loads(words_json_path.read_text(encoding="utf-8"))
 
@@ -156,17 +162,43 @@ async def tts_segment_with_retry(
     if not clean_tts:
         clean_tts = "."
 
+    base_rate = role_cfg.get("rate", "+0%")
+    base_pitch = role_cfg.get("pitch", "+0Hz")
+
     last_err = None
     for attempt in range(max_retries):
+        if attempt < 3:
+            boundary = "WordBoundary"
+            rate = base_rate
+            pitch = base_pitch
+            tts_input = clean_tts
+            if attempt == 2:
+                stripped = re.sub(r"[,;:\-—….!?]+$", "", clean_tts).strip()
+                if any(ch.isalnum() for ch in stripped):
+                    tts_input = stripped
+        elif attempt < 6:
+            boundary = "SentenceBoundary"
+            rate = base_rate
+            pitch = base_pitch
+            tts_input = clean_tts
+        else:
+            boundary = "SentenceBoundary"
+            rate = "+0%"
+            pitch = "+0Hz"
+            alpha_only = re.sub(
+                r"\s+", " ", re.sub(r"[^\w\s]", " ", clean_tts, flags=re.UNICODE)
+            ).strip()
+            tts_input = alpha_only if any(ch.isalnum() for ch in alpha_only) else "ừ"
+
         try:
             words: List[Dict[str, Any]] = []
             audio_chunks = bytearray()
             c = edge_tts.Communicate(
-                clean_tts,
+                tts_input,
                 voice=role_cfg["voice"],
-                rate=role_cfg.get("rate", "+0%"),
-                pitch=role_cfg.get("pitch", "+0Hz"),
-                boundary="WordBoundary",
+                rate=rate,
+                pitch=pitch,
+                boundary=boundary,
             )
             async for ch in c.stream():
                 if ch["type"] == "audio":
@@ -187,7 +219,7 @@ async def tts_segment_with_retry(
                 return words
         except Exception as e:
             last_err = e
-        await asyncio.sleep(0.5 + attempt * 0.6)
+        await asyncio.sleep(0.25 + min(attempt, 4) * 0.35)
 
     raise RuntimeError(
         f"edge-tts thất bại sau {max_retries} lần cho câu '{clean_tts[:40]}': {last_err}"
@@ -203,16 +235,28 @@ def align_display_words(
         return []
 
     if not wb_words:
-        step = max(0.05, seg_dur / len(display_tokens))
-        return [
-            {
-                "text": tok,
-                "start": i * step,
-                "end": min(seg_dur, (i + 1) * step),
-                "has_break": tok[-1] in ",.!?;:",
-            }
-            for i, tok in enumerate(display_tokens)
+        weights = [
+            max(2.0, float(len(norm_token(tok)) or len(tok)))
+            + (1.2 if tok[-1] in ",.!?;:" else 0.0)
+            for tok in display_tokens
         ]
+        total_w = sum(weights) or float(len(display_tokens))
+        cur = 0.0
+        out: List[Dict[str, Any]] = []
+        for tok, w in zip(display_tokens, weights):
+            d = max(0.03, seg_dur * (w / total_w))
+            end = min(seg_dur, cur + d)
+            out.append(
+                {
+                    "text": tok,
+                    "start": min(cur, max(0.0, seg_dur - 0.02)),
+                    "end": end,
+                    "has_break": tok[-1] in ",.!?;:",
+                }
+            )
+            cur = end
+        out[-1]["end"] = seg_dur
+        return out
 
     for w in wb_words:
         w["start"] = max(0.0, float(w["start"]))

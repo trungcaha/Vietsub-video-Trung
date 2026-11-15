@@ -18,7 +18,7 @@
    - `pitch` trong `project.json` bắt buộc dùng đơn vị `Hz` (`+0Hz`, `-10Hz`, `+18Hz`); không dùng `%`.
    - Chia `offset` và `duration` của `WordBoundary` cho `10_000_000.0` để ra giây.
    - `warmup_tts()` phải chạy hết tất cả các giọng (dùng `break` trong vòng retry, không `return` sớm).
-   - Retry tối đa 8 lần; kẹp tốc độ `atempo <= 1.48`; khớp từ hiển thị bằng `difflib.SequenceMatcher`.
+   - Retry 3 tầng (`WordBoundary` -> `SentenceBoundary` -> `SentenceBoundary` `+0%`/`+0Hz` khi câu ngắn + `pitch != 0Hz` gặp `NoAudioReceived`), dùng weighted character timing khi `not wb_words`; kẹp tốc độ `atempo <= 1.48`; khớp từ hiển thị bằng `difflib.SequenceMatcher`.
 5. **FFmpeg filter `ass=` trên Windows:**
    - Luôn chạy `subprocess.run(..., cwd=str(tmp_ep))` và dùng tên tương đối `ass=vi_karaoke.ass` để tránh lỗi phân tích dấu `:` của đường dẫn ổ đĩa Windows.
 6. **Ưu tiên metadata gốc từ `_zh.json` ở Bước 4:**
