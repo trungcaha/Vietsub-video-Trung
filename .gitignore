@@ -1,0 +1,43 @@
+# Thư mục dữ liệu & sản xuất video cục bộ (không đẩy lên Git)
+raw/
+output/
+_tmp/
+transcripts/
+translations/
+browser_data/
+
+# File media & tệp tải dở
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.wav
+*.mp3
+*.m4a
+*.aac
+*.part
+
+# Báo cáo sản xuất sinh cục bộ trong dự án
+BAO_CAO_SAN_XUAT.md
+
+# Python cache & môi trường
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+.pytest_cache/
+
+# Biến môi trường & secret
+.env
+.env.*
+
+# Hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Giữ nguyên ảnh minh họa & tài sản mẫu trong assets/
+!assets/
+!assets/*.jpg
+!assets/*.png

@@ -1,0 +1,116 @@
+{
+  "project_slug": "wangwang-miaoba",
+  "channel_name": "汪汪喵爸",
+  "channel_url": "https://www.douyin.com/user/MS4wLjABAAAAGuavi8wyW962QXOA9yKQyGxPuoa_jhQSplhf6KA3Yos",
+  "sec_uid": "MS4wLjABAAAAGuavi8wyW962QXOA9yKQyGxPuoa_jhQSplhf6KA3Yos",
+  "platform": "douyin",
+  "source_lang": "zh",
+  "target_lang": "vi",
+  "compilation_min_sec": 600,
+  "compilation_keywords": [
+    "合集",
+    "纯享"
+  ],
+  "whisper": {
+    "model": "large-v3",
+    "fallback_model": "medium",
+    "device": "cuda",
+    "compute_type": "float16",
+    "beam_size": 3,
+    "min_silence_ms": 350,
+    "speech_pad_ms": 120,
+    "pause_split_sec": 1.05
+  },
+  "ducking": {
+    "bg_normal": 0.85,
+    "bg_duck": 0.08,
+    "ramp_ms": 90,
+    "pad_before": 0.1,
+    "pad_after": 0.12
+  },
+  "karaoke": {
+    "atempo_max": 1.48,
+    "gblur_sigma": 24,
+    "mask_brightness": -0.08,
+    "mask_fill": 248,
+    "mask_feather": 12,
+    "font_name": "Arial",
+    "secondary_bgr": "&H00FFFFFF",
+    "outline_bgr": "&H00000000",
+    "back_bgr": "&H96000000",
+    "chunk_min_words": 4,
+    "chunk_max_words": 7
+  },
+  "render": {
+    "sample_rate": 48000,
+    "video_codec": "h264_nvenc",
+    "nvenc_preset": "p4",
+    "nvenc_cq": 21,
+    "cpu_fallback_codec": "libx264",
+    "cpu_preset": "veryfast",
+    "cpu_crf": 20,
+    "audio_bitrate": "192k",
+    "max_duration_diff_sec": 0.6
+  },
+  "default_role": "dan_chuyen",
+  "roles": {
+    "bo_cho": {
+      "label": "Bố Chó Đại Hoàng",
+      "description": "Chó lớn ấm áp, trụ cột gia đình (f0_hz thường < 165 Hz hoặc ngữ cảnh Bố Cún nói)",
+      "f0_range": [0, 165],
+      "voice": "vi-VN-NamMinhNeural",
+      "rate": "+0%",
+      "pitch": "-10Hz",
+      "style": "BoCho",
+      "color_bgr": "&H0000E5FF"
+    },
+    "bien_muc": {
+      "label": "Anh Biên (Border Collie)",
+      "description": "Chó bạn trẻ thông minh, bình tĩnh / sói trẻ (f0_hz khoảng 155–235 Hz)",
+      "f0_range": [155, 235],
+      "voice": "vi-VN-NamMinhNeural",
+      "rate": "+4%",
+      "pitch": "+2Hz",
+      "style": "BienMuc",
+      "color_bgr": "&H00FFFF2E"
+    },
+    "ke_xau": {
+      "label": "Kẻ Xấu / Sói Dữ",
+      "description": "Trộm chó, sói đầu đàn, nhân vật phản diện đe dọa trầm gằn",
+      "f0_range": [0, 155],
+      "voice": "vi-VN-NamMinhNeural",
+      "rate": "-2%",
+      "pitch": "-18Hz",
+      "style": "KeXau",
+      "color_bgr": "&H005555FF"
+    },
+    "meo_con": {
+      "label": "Mèo Con Tiểu Quất",
+      "description": "Mèo con, thú nhỏ, trẻ nhỏ (f0_hz thường >= 225 Hz hoặc giọng non nớt)",
+      "f0_range": [225, 999],
+      "voice": "vi-VN-HoaiMyNeural",
+      "rate": "+6%",
+      "pitch": "+18Hz",
+      "style": "MeoCon",
+      "color_bgr": "&H0028AEFF"
+    },
+    "dan_chuyen": {
+      "label": "Dẫn Chuyện / Giọng Nữ",
+      "description": "Lời dẫn chuyện ngôi thứ ba, câu cảm thán tổng kết hoặc giọng nữ",
+      "f0_range": [180, 999],
+      "voice": "vi-VN-HoaiMyNeural",
+      "rate": "+2%",
+      "pitch": "+0Hz",
+      "style": "DanChuyen",
+      "color_bgr": "&H0078F0FF"
+    }
+  },
+  "paths": {
+    "ffmpeg": "",
+    "ffprobe": "",
+    "cuda_torch_lib": "",
+    "mediacrawler_dir": "",
+    "fallback_dl_py": "",
+    "fallback_dl_script": ""
+  }
+}
