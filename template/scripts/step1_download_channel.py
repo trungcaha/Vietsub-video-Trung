@@ -7,6 +7,7 @@ Chạy bằng Python môi trường MediaCrawler:
 import argparse
 import asyncio
 import datetime
+import importlib.util
 import io
 import json
 import os
@@ -20,7 +21,12 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
-from config_loader import add_project_dir_arg, load_project_config, probe_video_basic  # noqa: E402
+from config_loader import (  # noqa: E402
+    add_project_dir_arg,
+    find_mediacrawler_python,
+    load_project_config,
+    probe_video_basic,
+)
 
 if hasattr(sys.stdout, "buffer"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
@@ -174,6 +180,124 @@ async def fetch_posts_via_mediacrawler(
         os.chdir(str(prev_cwd))
 
 
+def _ytdlp_cmd_prefix() -> Optional[List[str]]:
+    yt_bin = shutil.which("yt-dlp")
+    if yt_bin:
+        return [yt_bin]
+    if importlib.util.find_spec("yt_dlp") is not None:
+        return [sys.executable, "-m", "yt_dlp"]
+    return None
+
+
+def download_with_ytdlp(aweme_url: str, dst: Path, ffprobe_bin: str) -> bool:
+    """Fallback tải 1 video Douyin bằng yt-dlp nếu curl trực tiếp thất bại."""
+    prefix = _ytdlp_cmd_prefix()
+    if not prefix or not aweme_url:
+        return False
+    tmp_tpl = str(dst.with_suffix(".%(ext)s"))
+    subprocess.run(
+        [
+            *prefix,
+            "--no-warnings",
+            "--no-playlist",
+            "-f",
+            "bv*+ba/b",
+            "--merge-output-format",
+            "mp4",
+            "-o",
+            tmp_tpl,
+            aweme_url,
+        ],
+        check=False,
+    )
+    if probe_video_basic(dst, ffprobe_bin=ffprobe_bin) is not None:
+        return True
+    return False
+
+
+def run_ytdlp_channel_fallback(
+    channel_url: str, fallback_dir: Path, ffprobe_bin: str
+) -> List[Dict[str, Any]]:
+    """Fallback dùng yt-dlp thử trích xuất danh sách/video từ URL kênh khi MediaCrawler trả 0 bài."""
+    prefix = _ytdlp_cmd_prefix()
+    if not prefix or not channel_url:
+        return []
+    print("[Fallback] Đang thử yt-dlp cho URL kênh...", flush=True)
+    fallback_dir.mkdir(parents=True, exist_ok=True)
+    res = subprocess.run(
+        [
+            *prefix,
+            "--no-warnings",
+            "--ignore-errors",
+            "--write-info-json",
+            "-f",
+            "bv*+ba/b",
+            "--merge-output-format",
+            "mp4",
+            "-o",
+            str(fallback_dir / "%(id)s.%(ext)s"),
+            channel_url,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    items: List[Dict[str, Any]] = []
+    for info_p in sorted(fallback_dir.glob("*.info.json")):
+        try:
+            meta = json.loads(info_p.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        aid = str(meta.get("id") or "").strip()
+        mp4_p = fallback_dir / f"{aid}.mp4"
+        if aid and probe_video_basic(mp4_p, ffprobe_bin=ffprobe_bin) is not None:
+            items.append(
+                {
+                    "id": aid,
+                    "t": int(meta.get("timestamp") or 0),
+                    "desc": meta.get("description") or meta.get("title") or "",
+                    "dur": float(meta.get("duration") or 0),
+                    "url": meta.get("webpage_url") or "",
+                }
+            )
+    if not items and res.returncode != 0:
+        print(f"[Fallback] yt-dlp không lấy được kênh ({(res.stderr or '')[:160]}).", flush=True)
+    return items
+
+
+def ensure_mediacrawler_runtime(mediacrawler_dir: Path) -> None:
+    """Nếu Python hiện tại thiếu playwright/execjs, tự động re-exec bằng .venv của MediaCrawler."""
+    has_pw = importlib.util.find_spec("playwright") is not None
+    has_js = importlib.util.find_spec("execjs") is not None
+    if has_pw and has_js:
+        return
+
+    if os.environ.get("_VIETSUB_MC_REEXEC") == "1":
+        raise RuntimeError(
+            "Môi trường Python MediaCrawler vẫn thiếu 'playwright' hoặc 'pyexecjs'. "
+            "Hãy chạy: python setup_machine.py"
+        )
+
+    mc_py = find_mediacrawler_python(mediacrawler_dir)
+    if not mc_py:
+        raise RuntimeError(
+            f"Python hiện tại thiếu playwright/execjs và chưa tìm thấy .venv tại {mediacrawler_dir}. "
+            "Hãy chạy 'python setup_machine.py' để tự cài môi trường MediaCrawler."
+        )
+
+    if mc_py.resolve() == Path(sys.executable).resolve():
+        raise RuntimeError(
+            "Đã dùng đúng Python .venv của MediaCrawler nhưng thiếu playwright/execjs. "
+            "Hãy chạy lại: python setup_machine.py"
+        )
+
+    print(f"[Auto Re-exec] Chuyển sang Python MediaCrawler: {mc_py}", flush=True)
+    env = os.environ.copy()
+    env["_VIETSUB_MC_REEXEC"] = "1"
+    res = subprocess.run([str(mc_py), str(Path(__file__).resolve()), *sys.argv[1:]], env=env)
+    sys.exit(res.returncode)
+
+
 def run_fallback_downloader(
     fallback_py: Path, fallback_script: Path, sec_uid: str, fallback_dir: Path
 ) -> List[Dict[str, Any]]:
@@ -217,6 +341,31 @@ async def main() -> None:
             "Thiếu sec_uid trong project.json. Hãy điền sec_uid hoặc channel_url hợp lệ."
         )
 
+    mc_dir_str = cfg["tools"].get("mediacrawler_dir") or ""
+    if not mc_dir_str:
+        raise RuntimeError(
+            "Không tìm thấy thư mục MediaCrawler. Hãy chạy 'python setup_machine.py', "
+            "đặt biến môi trường MEDIACRAWLER_DIR hoặc điền paths.mediacrawler_dir trong project.json."
+        )
+    mediacrawler_dir = Path(mc_dir_str)
+    ensure_mediacrawler_runtime(mediacrawler_dir)
+
+    if shutil.which("node") is None:
+        print(
+            "[CẢNH BÁO] Không tìm thấy 'node' (Node.js) trong PATH. "
+            "MediaCrawler cần Node.js để ký request Douyin qua libs/douyin.js. "
+            "Nếu lấy bài thất bại, hãy cài Node.js LTS rồi chạy: python setup_machine.py --doctor",
+            flush=True,
+        )
+
+    dy_profile_dir = mediacrawler_dir / "browser_data" / "cdp_dy_user_data_dir"
+    if not dy_profile_dir.is_dir():
+        print(
+            "[Lưu ý] Chưa phát hiện hồ sơ đăng nhập Douyin (browser_data/cdp_dy_user_data_dir). "
+            "Nếu Douyin yêu cầu đăng nhập hoặc trả 0 bài, hãy chạy: python setup_machine.py --login dy",
+            flush=True,
+        )
+
     channel_name = cfg.get("channel_name") or cfg.get("project_slug")
     channel_url = cfg.get("channel_url") or f"https://www.douyin.com/user/{sec_uid}"
     raw_dir = Path(cfg["dirs"]["raw"])
@@ -224,19 +373,24 @@ async def main() -> None:
     manifest_path = raw_dir / "posts_manifest.json"
     ffprobe_bin = cfg["tools"]["ffprobe"]
 
-    mc_dir_str = cfg["tools"].get("mediacrawler_dir") or ""
-    if not mc_dir_str:
-        raise RuntimeError(
-            "Không tìm thấy thư mục MediaCrawler. Hãy đặt biến môi trường MEDIACRAWLER_DIR "
-            "hoặc điền paths.mediacrawler_dir trong project.json."
-        )
-    mediacrawler_dir = Path(mc_dir_str)
-
     comp_min_sec = float(cfg.get("compilation_min_sec", 600))
     comp_keywords = [str(k) for k in (cfg.get("compilation_keywords") or ["合集", "纯享"])]
 
     print(f"=== BƯỚC 1: TẢI VIDEO KÊNH {channel_name} ({sec_uid}) ===", flush=True)
-    raw_posts, ua = await fetch_posts_via_mediacrawler(mediacrawler_dir, sec_uid)
+    raw_posts: List[Dict[str, Any]] = []
+    ua = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
+    )
+    try:
+        raw_posts, ua = await fetch_posts_via_mediacrawler(mediacrawler_dir, sec_uid)
+    except Exception as mc_err:
+        print(
+            f"[CẢNH BÁO] MediaCrawler gặp lỗi ({mc_err}). "
+            "Nếu do hết phiên / chưa đăng nhập Douyin hoặc thiếu Node.js, hãy chạy: "
+            "python setup_machine.py --login dy",
+            flush=True,
+        )
 
     dedup: Dict[str, Dict[str, Any]] = {}
     for item in raw_posts:
@@ -262,27 +416,39 @@ async def main() -> None:
     ):
         fallback_used = True
         fb_list = run_fallback_downloader(fb_py, fb_script, sec_uid, fallback_dir)
-        for fi in fb_list:
-            aid = str(fi.get("id") or fi.get("aweme_id") or "").strip()
-            if aid:
-                fallback_items_by_id[aid] = fi
-                if aid not in dedup:
-                    dedup[aid] = {
-                        "aweme_id": aid,
-                        "create_time": int(fi.get("t", fi.get("create_time", 0)) or 0),
-                        "desc": fi.get("desc") or "",
-                        "video": {
-                            "duration": int(fi.get("dur", 0) or 0),
-                            "play_addr": {"url_list": [fi.get("url")] if fi.get("url") else []},
-                        },
-                        "statistics": {},
-                        "mix_info": {},
-                        "_fallback_file": str(fallback_dir / f"{aid}.mp4"),
-                    }
+    elif not dedup:
+        fb_list = run_ytdlp_channel_fallback(channel_url, fallback_dir, ffprobe_bin=ffprobe_bin)
+        if fb_list:
+            fallback_used = True
+    else:
+        fb_list = []
+
+    for fi in fb_list:
+        aid = str(fi.get("id") or fi.get("aweme_id") or "").strip()
+        if aid:
+            fallback_items_by_id[aid] = fi
+            if aid not in dedup:
+                dedup[aid] = {
+                    "aweme_id": aid,
+                    "create_time": int(fi.get("t", fi.get("create_time", 0)) or 0),
+                    "desc": fi.get("desc") or "",
+                    "video": {
+                        "duration": int(fi.get("dur", 0) or 0),
+                        "play_addr": {"url_list": [fi.get("url")] if fi.get("url") else []},
+                    },
+                    "statistics": {},
+                    "mix_info": {},
+                    "_fallback_file": str(fallback_dir / f"{aid}.mp4"),
+                }
+    if fallback_used:
         print(f"[Fallback] Tổng bài sau gộp: {len(dedup)}", flush=True)
 
     if not dedup:
-        raise RuntimeError("Không lấy được danh sách bài đăng nào từ Douyin!")
+        raise RuntimeError(
+            "Không lấy được danh sách bài đăng nào từ Douyin! "
+            "Hãy đăng nhập Douyin bằng lệnh: python setup_machine.py --login dy "
+            "(và kiểm tra Node.js bằng: python setup_machine.py --doctor)."
+        )
 
     sorted_items = sorted(
         dedup.values(),
@@ -321,17 +487,25 @@ async def main() -> None:
 
         meta = probe_video_basic(dst_mp4, ffprobe_bin=ffprobe_bin)
         if meta is None:
+            aweme_page_url = f"https://www.douyin.com/video/{aid}"
             if not urls:
-                print(f"  [{ep_key}] BỎ QUA (không có URL video): {desc[:55]}", flush=True)
-                failed_ids.append(aid)
-                continue
-            print(f"  [{idx:02d}/{len(sorted_items)}] Đang tải {ep_key} ...", flush=True)
-            if download_with_curl(urls, dst_mp4, ua, ffprobe_bin=ffprobe_bin):
-                meta = probe_video_basic(dst_mp4, ffprobe_bin=ffprobe_bin)
+                print(f"  [{idx:02d}/{len(sorted_items)}] Thử yt-dlp cho {ep_key} (không có play_addr)...", flush=True)
+                if download_with_ytdlp(aweme_page_url, dst_mp4, ffprobe_bin=ffprobe_bin):
+                    meta = probe_video_basic(dst_mp4, ffprobe_bin=ffprobe_bin)
+                else:
+                    print(f"  [{ep_key}] BỎ QUA (không có URL video): {desc[:55]}", flush=True)
+                    failed_ids.append(aid)
+                    continue
             else:
-                print(f"  [{ep_key}] LỖI TẢI VIDEO!", flush=True)
-                failed_ids.append(aid)
-                continue
+                print(f"  [{idx:02d}/{len(sorted_items)}] Đang tải {ep_key} ...", flush=True)
+                if download_with_curl(urls, dst_mp4, ua, ffprobe_bin=ffprobe_bin):
+                    meta = probe_video_basic(dst_mp4, ffprobe_bin=ffprobe_bin)
+                elif download_with_ytdlp(aweme_page_url, dst_mp4, ffprobe_bin=ffprobe_bin):
+                    meta = probe_video_basic(dst_mp4, ffprobe_bin=ffprobe_bin)
+                else:
+                    print(f"  [{ep_key}] LỖI TẢI VIDEO!", flush=True)
+                    failed_ids.append(aid)
+                    continue
         else:
             print(f"  [{idx:02d}/{len(sorted_items)}] Đã có sẵn {ep_key}.mp4", flush=True)
 

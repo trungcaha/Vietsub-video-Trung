@@ -5,6 +5,24 @@ _tmp/
 transcripts/
 translations/
 browser_data/
+_pilot/
+
+# Dữ liệu phát sinh trong vendor/MediaCrawler (giữ nguyên mã nguồn & libs/*.js)
+vendor/MediaCrawler/.venv/
+vendor/MediaCrawler/browser_data/
+vendor/MediaCrawler/data/
+vendor/MediaCrawler/logs/
+vendor/MediaCrawler/node_modules/
+vendor/MediaCrawler/webui/node_modules/
+vendor/MediaCrawler/api/webui/
+!vendor/MediaCrawler/libs/
+!vendor/MediaCrawler/libs/*.js
+
+# Cơ sở dữ liệu & tệp tạm
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite*
 
 # File media & tệp tải dở
 *.mp4

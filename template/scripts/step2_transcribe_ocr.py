@@ -11,7 +11,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 SCRIPTS_DIR = Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
@@ -394,16 +394,38 @@ def main() -> None:
     device = w_cfg.get("device", "cuda")
     compute_type = w_cfg.get("compute_type", "float16")
 
-    try:
-        model = WhisperModel(primary_model, device=device, compute_type=compute_type)
-        model_name = primary_model
-    except Exception as e:
-        print(f"[Warn] Không load được {primary_model} ({e}), chuyển sang {fallback_model}...", flush=True)
-        model = WhisperModel(fallback_model, device=device, compute_type=compute_type)
-        model_name = fallback_model
+    attempts: List[Tuple[str, str, str]] = [(primary_model, device, compute_type)]
+    if device != "cpu" and fallback_model != primary_model:
+        attempts.append((fallback_model, device, compute_type))
+    if device != "cpu":
+        attempts.append((fallback_model, "cpu", "int8"))
+    elif fallback_model != primary_model:
+        attempts.append((fallback_model, "cpu", "int8"))
+
+    model = None
+    model_name = primary_model
+    active_device = device
+    active_compute = compute_type
+    last_err: Optional[Exception] = None
+    for cand_model, cand_dev, cand_ct in attempts:
+        try:
+            model = WhisperModel(cand_model, device=cand_dev, compute_type=cand_ct)
+            model_name = cand_model
+            active_device = cand_dev
+            active_compute = cand_ct
+            break
+        except Exception as e:
+            last_err = e
+            print(
+                f"[Warn] Không load được Whisper '{cand_model}' ({cand_dev}/{cand_ct}): {e}",
+                flush=True,
+            )
+
+    if model is None:
+        raise RuntimeError(f"Không nạp được bất kỳ mô hình Whisper nào: {last_err}")
 
     ocr = RapidOCR()
-    print(f"Đã nạp Whisper '{model_name}' ({device}/{compute_type}) + RapidOCR.", flush=True)
+    print(f"Đã nạp Whisper '{model_name}' ({active_device}/{active_compute}) + RapidOCR.", flush=True)
 
     tmp_jpg = trans_dir / "_tmp_ocr_frame.jpg"
     done_cnt = 0

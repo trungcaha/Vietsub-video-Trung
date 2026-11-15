@@ -25,6 +25,9 @@ vietsub-video-trung/
 ├── README.md
 ├── AGENTS.md
 ├── .gitignore
+├── setup_machine.py
+├── install.ps1
+├── install.sh
 ├── assets/
 │   ├── demo-karaoke-bo-cho.jpg
 │   └── demo-karaoke-anh-bien.jpg
@@ -33,6 +36,8 @@ vietsub-video-trung/
 ├── workflows/
 │   ├── workflow_translate_qa.py
 │   └── vietsub-karaoke-pipeline.md
+├── vendor/
+│   └── MediaCrawler/          # Mã nguồn sạch tích hợp sẵn (~4.3 MB, không cookie/venv/db)
 ├── skills/
 │   └── vietsub-video-trung/
 │       ├── SKILL.md
@@ -52,30 +57,58 @@ vietsub-video-trung/
         └── step5_audit_report.py
 ```
 
+## Triển khai sang máy mới chỉ 3 lệnh
+
+Kho lưu trữ đã nhúng sẵn mã nguồn sạch `vendor/MediaCrawler/` và bộ cài tự động đa nền tảng (`Windows`, `macOS`, `Linux`):
+
+```bash
+# 1. Clone repo
+git clone https://github.com/trungcaha/Vietsub-video-Trung.git && cd Vietsub-video-Trung
+
+# 2. Cài skill + .venv MediaCrawler (uv sync hoặc venv+pip + chromium) + thư viện pipeline + kiểm tra --doctor
+python setup_machine.py
+# Hoặc trên Windows PowerShell: .\install.ps1
+# Hoặc trên macOS/Linux:       ./install.sh
+
+# 3. Quét QR đăng nhập Douyin một lần (lưu cookie cục bộ vào browser_data/)
+python setup_machine.py --login dy
+```
+
+### Tùy chọn nâng cao của `setup_machine.py`
+
+| Lệnh | Tác dụng |
+|---|---|
+| `python setup_machine.py --doctor` | Kiểm tra sức khỏe toàn hệ thống (Python, `ffmpeg` có `ass` + `h264_nvenc`, `node`, Chrome/Edge, `MediaCrawler` + `.venv`, CUDA `torch/lib` hoặc CPU fallback) |
+| `python setup_machine.py --skill-only` | Chỉ đồng bộ `skill`, `vendor/MediaCrawler`, `template`, `workflows`, `rules` & trigger `AGENTS.md` (không chạy `uv`/`pip`) |
+| `python setup_machine.py --skip-pip` | Đồng bộ skill và chạy `--doctor`, bỏ qua bước cài đặt gói Python |
+| `python setup_machine.py --venv-target skill\|repo\|both` | Chọn nơi tạo `.venv` cho `MediaCrawler` (mặc định: `skill`) |
+| `python setup_machine.py --login dy\|xhs\|bili` | Mở trình duyệt đăng nhập quét QR cho từng nền tảng |
+
 ## Yêu cầu môi trường & phụ thuộc
 
-- **Python**: `3.13+` (hoặc `3.10+`)
-- **FFmpeg & FFprobe**: Bản có hỗ trợ `libass` và khuyến nghị GPU `h264_nvenc` (fallback tự động sang `libx264`).
-- **Thư viện Python**: `faster-whisper`, `rapidocr-onnxruntime`, `edge-tts`, `numpy`, `Pillow` (cùng CUDA DLL từ `torch/lib` hoặc NVIDIA CUDA/cuDNN cho Bước 2).
-- **Trình tải kênh (Bước 1)**: `MediaCrawler` (môi trường riêng có `playwright` và trình duyệt Chromium/CDP; chạy trong bước 1 bằng Python `.venv` của `MediaCrawler`, cần kết nối mạng tới Douyin).
+- **Python**: `3.10+` (khuyến nghị `3.13`)
+- **FFmpeg & FFprobe**: Bản có filter `ass` (`libass`) và khuyến nghị GPU `h264_nvenc` (tự động fallback sang `libx264`).
+- **Node.js**: Cần cho `pyexecjs` trong `MediaCrawler` khi ký request `douyin.js`.
+- **Trình duyệt**: Google Chrome hoặc Microsoft Edge (dùng ở chế độ CDP của `MediaCrawler`).
+- **Thư viện Python**: `faster-whisper`, `rapidocr-onnxruntime`, `edge-tts`, `numpy`, `Pillow`, `yt-dlp` (tự động cài bởi `setup_machine.py`; Whisper tự động fallback sang CPU `int8` nếu máy không có GPU CUDA).
 - **Lồng tiếng TTS (Bước 4)**: Yêu cầu kết nối Internet để gọi Microsoft Edge TTS (`edge-tts`).
 
 ### Biến môi trường tùy chọn (Auto-Discovery)
 
-`config_loader.py` tự dò công cụ theo thứ tự `ENV -> project.json["paths"] -> PATH (shutil.which) -> thư mục tương đối`:
+`config_loader.py` tự dò công cụ theo thứ tự `ENV -> project.json["paths"] -> skill vendor -> đường dẫn tương đối/PATH` (nếu có nhiều bản `MediaCrawler`, ưu tiên bản đã có sẵn `.venv`):
 
 | Biến môi trường | Ý nghĩa |
 |---|---|
 | `VIETSUB_PROJECT_DIR` | Thư mục dự án chứa `project.json` |
 | `FFMPEG_BIN` / `FFPROBE_BIN` | Đường dẫn tới `ffmpeg` / `ffprobe` |
 | `CUDA_TORCH_LIB` | Thư mục chứa CUDA DLL (`torch/lib`) cho `faster_whisper` |
-| `MEDIACRAWLER_DIR` | Thư mục cài `MediaCrawler` |
+| `MEDIACRAWLER_DIR` | Thư mục cài `MediaCrawler` (mặc định tự dùng bản trong skill hoặc `vendor/MediaCrawler`) |
 | `WORK_ROOT` | Thư mục gốc chứa bộ công cụ chung (nếu có) |
 
-## Cài đặt vào Antigravity cục bộ
+## Cài đặt thủ công vào Antigravity cục bộ (thay cho `setup_machine.py`)
 
-1. Sao chép thư mục `skills/vietsub-video-trung/` (kèm bản sao `template/`, `workflows/`, `rules/` bên trong để tự đủ độc lập) vào `~/.gemini/config/skills/vietsub-video-trung/`.
-2. Thêm từ khóa kích hoạt vào `~/.gemini/config/AGENTS.md`:
+1. Chạy `python setup_machine.py --skill-only` để tự động đồng bộ toàn bộ skill + `vendor/MediaCrawler` + `template` + `workflows` + `rules` sang `~/.gemini/config/skills/vietsub-video-trung/` và chèn trigger vào `~/.gemini/config/AGENTS.md`.
+2. Hoặc chép thủ công vào `~/.gemini/config/skills/vietsub-video-trung/` và thêm dòng sau vào `~/.gemini/config/AGENTS.md`:
    ```markdown
    | vietsub-video-trung | "vietsub video trung", "vietsub douyin", "karaoke sub", "long tieng kenh trung", "dich kenh douyin" |
    ```
@@ -96,10 +129,10 @@ Chỉnh sửa `./Du_an/ten-kenh-moi/project.json` (cấu hình vai `roles`, ngư
 ### 2. Chạy tuần tự 5 bước
 
 ```bash
-# Bước 1: Tải video kênh (dùng Python của MediaCrawler)
-<mediacrawler-python> ./Du_an/ten-kenh-moi/scripts/step1_download_channel.py --project-dir "./Du_an/ten-kenh-moi"
+# Bước 1: Tải video kênh (tự động re-exec sang .venv MediaCrawler nếu cần)
+python ./Du_an/ten-kenh-moi/scripts/step1_download_channel.py --project-dir "./Du_an/ten-kenh-moi"
 
-# Bước 2: Nhận diện thoại Whisper GPU + đo f0_hz + dò hardsub RapidOCR
+# Bước 2: Nhận diện thoại Whisper (GPU float16 / CPU int8 fallback) + đo f0_hz + dò hardsub RapidOCR
 python ./Du_an/ten-kenh-moi/scripts/step2_transcribe_ocr.py --project-dir "./Du_an/ten-kenh-moi"
 
 # Bước 3: Chạy /run-workflow với ./Du_an/ten-kenh-moi/scripts/step3_workflow_translate.py

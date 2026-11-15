@@ -2,6 +2,18 @@
 
 Quy trình chuẩn hóa để chuyển toàn bộ một kênh video Trung/Douyin thành video tiếng Việt phân vai, phụ đề Karaoke quét màu `\kf` và giữ nguyên âm thanh nền tự nhiên.
 
+## Triển khai sang máy mới chỉ 3 lệnh
+
+```bash
+git clone https://github.com/trungcaha/Vietsub-video-Trung.git && cd Vietsub-video-Trung
+python setup_machine.py            # Windows: .\install.ps1 | macOS/Linux: ./install.sh
+python setup_machine.py --login dy # Quét QR đăng nhập Douyin
+```
+
+Kiểm tra môi trường bất kỳ lúc nào bằng: `python setup_machine.py --doctor`.
+
+---
+
 ## Bước 0: Khởi tạo dự án & Cấu hình vai
 
 ```bash
@@ -18,11 +30,13 @@ python skills/vietsub-video-trung/scripts/init_project.py \
 
 ## Bước 1: Tải video kênh & lập `posts_manifest.json`
 
-Chạy bằng Python của môi trường `MediaCrawler`:
+Chạy bằng Python bình thường (script tự động chuyển sang `.venv` của `MediaCrawler` nếu cần, và tự fallback `yt-dlp` nếu cần):
 
 ```bash
-<mediacrawler-venv-python> scripts/step1_download_channel.py --project-dir "<du-an>"
+python scripts/step1_download_channel.py --project-dir "<du-an>"
 ```
+
+*(Nếu báo thiếu đăng nhập hoặc 0 bài, chạy `python setup_machine.py --login dy` để quét QR lại rồi chạy lại Bước 1.)*
 
 **Cổng kiểm chứng 1:**
 - `raw/posts_manifest.json` tồn tại và đếm đúng `single_episodes_count` vs `compilations_count`.
@@ -30,14 +44,14 @@ Chạy bằng Python của môi trường `MediaCrawler`:
 
 ---
 
-## Bước 2: Nhận diện thoại Whisper + đo `f0_hz` + RapidOCR dải đáy
+## Bước 2: Nhận diện thoại Whisper (CUDA / CPU fallback) + đo `f0_hz` + RapidOCR dải đáy
 
 ```bash
 python scripts/step2_transcribe_ocr.py --project-dir "<du-an>"
 ```
 
 **Lưu ý kỹ thuật:**
-- Script tự nạp `torch/lib` trước khi import `faster_whisper` (`large-v3`, `CUDA float16`, `word_timestamps=True`, `condition_on_previous_text=False`, tách segment khi nghỉ `> 1.05s`).
+- Script tự nạp `torch/lib` trước khi import `faster_whisper` (`large-v3`, `CUDA float16`, `word_timestamps=True`, `condition_on_previous_text=False`, tách segment khi nghỉ `> 1.05s`). Máy không có NVIDIA CUDA sẽ tự fallback mượt sang `medium` (`cpu` / `int8`).
 - `RapidOCR` chỉ crop dải đáy `(0.12*W, 0.75*H, 0.88*W, H)` (hoặc `0.60*H` cho video dọc) ở câu `0.8s–4.5s` rồi cộng bù tọa độ gốc.
 
 **Cổng kiểm chứng 2:**

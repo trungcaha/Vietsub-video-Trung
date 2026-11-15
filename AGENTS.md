@@ -5,6 +5,8 @@ Repository này đóng gói trọn bộ **Skill, Workflow, Rule và Template** t
 ## Cấu trúc mã nguồn
 
 - `skills/vietsub-video-trung/` — Antigravity Skill chuẩn (`SKILL.md`, `scripts/init_project.py`, `references/technical-pitfalls.md`).
+- `vendor/MediaCrawler/` — Mã nguồn sạch `MediaCrawler` tích hợp sẵn (không chứa `.venv`, `browser_data`, cookie hay `.db`), dùng cho Bước 1 tải kênh & đăng nhập QR đa nền tảng.
+- `setup_machine.py`, `install.ps1`, `install.sh` — Bộ cài đặt đa máy tự động (đồng bộ skill + `vendor/MediaCrawler` + `AGENTS.md`, tạo `.venv` MediaCrawler, cài thư viện pipeline & chạy `--doctor` / `--login`).
 - `template/` — Mẫu dự án mới (`project.example.json`, `glossary.example.md`) và bộ 5 script chuẩn hóa trong `template/scripts/`.
 - `workflows/` — Workflow `run_workflow` (`workflow_translate_qa.py`) và runbook 5 bước (`vietsub-karaoke-pipeline.md`).
 - `rules/vietsub-video-trung.md` — Quy tắc ràng buộc kỹ thuật bắt buộc tuân thủ khi vận hành pipeline.

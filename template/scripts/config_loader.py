@@ -292,22 +292,60 @@ def setup_cuda_dll_paths(cfg: Dict[str, Any]) -> List[Path]:
     return dirs
 
 
+def find_mediacrawler_python(mc_dir: Optional[Path]) -> Optional[Path]:
+    """Trả về đường dẫn Python trong .venv của MediaCrawler nếu đã được cài đặt."""
+    if not mc_dir or not mc_dir.is_dir():
+        return None
+    candidates = [
+        mc_dir / ".venv" / "Scripts" / "python.exe",
+        mc_dir / ".venv" / "bin" / "python",
+        mc_dir / ".venv" / "bin" / "python3",
+    ]
+    for cand in candidates:
+        if cand.is_file():
+            return cand.resolve()
+    return None
+
+
 def find_mediacrawler_dir(config_path: str = "", project_dir: Optional[Path] = None) -> Optional[Path]:
-    """Tìm thư mục MediaCrawler từ ENV -> project.json -> thư mục cha/WORK_ROOT."""
-    candidates: List[Path] = []
-    env_mc = os.environ.get("MEDIACRAWLER_DIR", "").strip()
-    if env_mc:
-        candidates.append(Path(env_mc).expanduser())
-    if config_path:
-        candidates.append(Path(config_path).expanduser())
+    """Tìm MediaCrawler theo ưu tiên: ENV -> project.json -> skill vendor -> <root>/vendor/MediaCrawler -> <root>/MediaCrawler.
+    Nếu có nhiều bản cùng tồn tại, ưu tiên bản đã có sẵn .venv.
+    """
+    for explicit in (os.environ.get("MEDIACRAWLER_DIR", "").strip(), (config_path or "").strip()):
+        if explicit:
+            ep = Path(explicit).expanduser()
+            if ep.is_dir() and (ep / "media_platform").is_dir():
+                return ep.resolve()
+
+    candidates: List[Path] = [
+        Path.home() / ".gemini" / "config" / "skills" / "vietsub-video-trung" / "vendor" / "MediaCrawler",
+    ]
     base_dir = project_dir or Path.cwd()
-    for root in _search_roots(base_dir):
+    roots = _search_roots(base_dir)
+    for anc in _ancestor_dirs(Path(__file__).resolve().parent, max_depth=4):
+        if anc not in roots:
+            roots.append(anc)
+
+    for root in roots:
+        candidates.append(root / "vendor" / "MediaCrawler")
+    for root in roots:
         candidates.append(root / "MediaCrawler")
 
+    valid_dirs: List[Path] = []
+    seen = set()
     for c in candidates:
         if c.is_dir() and (c / "media_platform").is_dir():
-            return c.resolve()
-    return None
+            rc = c.resolve()
+            key = str(rc).lower()
+            if key not in seen:
+                seen.add(key)
+                valid_dirs.append(rc)
+
+    for vd in valid_dirs:
+        if find_mediacrawler_python(vd) is not None:
+            return vd
+
+    return valid_dirs[0] if valid_dirs else None
 
 
 def load_project_config(project_dir: Optional[str | Path] = None) -> Dict[str, Any]:
@@ -338,10 +376,13 @@ def load_project_config(project_dir: Optional[str | Path] = None) -> Dict[str, A
     }
 
     paths_cfg = cfg.get("paths") or {}
+    mc_dir = find_mediacrawler_dir(paths_cfg.get("mediacrawler_dir", ""), pdir)
+    mc_py = find_mediacrawler_python(mc_dir)
     cfg["tools"] = {
         "ffmpeg": find_binary("ffmpeg", "FFMPEG_BIN", paths_cfg.get("ffmpeg", ""), pdir),
         "ffprobe": find_binary("ffprobe", "FFPROBE_BIN", paths_cfg.get("ffprobe", ""), pdir),
-        "mediacrawler_dir": str(find_mediacrawler_dir(paths_cfg.get("mediacrawler_dir", ""), pdir) or ""),
+        "mediacrawler_dir": str(mc_dir or ""),
+        "mediacrawler_python": str(mc_py or ""),
         "fallback_dl_py": os.environ.get("DOUYIN_FALLBACK_PY", "").strip()
         or paths_cfg.get("fallback_dl_py", "").strip(),
         "fallback_dl_script": os.environ.get("DOUYIN_FALLBACK_SCRIPT", "").strip()

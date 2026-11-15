@@ -17,11 +17,22 @@ description: >-
 | Thành phần | Vị trí | Chức năng |
 |---|---|---|
 | Khởi tạo dự án | [init_project.py](./scripts/init_project.py) | Sinh cây thư mục `raw/`, `transcripts/`, `translations/`, `output/`, `scripts/`, `project.json`, `glossary.md` |
+| Trình tải kênh nhúng | [vendor/MediaCrawler/](./vendor/MediaCrawler/) | Mã nguồn sạch `MediaCrawler` đi kèm skill; tự động tạo `.venv` & đăng nhập QR qua `setup_machine.py` |
 | Cấu hình mẫu | [project.example.json](./template/project.example.json) & [glossary.example.md](./template/glossary.example.md) | Tham số `ducking`, `karaoke`, `whisper`, `render`, bảng vai `roles` (`Hz`, `color_bgr`) và từ điển mẫu |
 | Bộ script 5 bước | [template/scripts/](./template/scripts/) | `config_loader.py`, `step1_download_channel.py` .. `step5_audit_report.py` |
 | Workflow dịch QA | [workflow_translate_qa.py](./workflows/workflow_translate_qa.py) & [step3_workflow_translate.py](./template/scripts/step3_workflow_translate.py) | Chạy `/run-workflow` dịch phân vai song song + QA Gate 0 lỗi |
 | Runbook & Quy tắc | [vietsub-karaoke-pipeline.md](./workflows/vietsub-karaoke-pipeline.md) & [vietsub-video-trung.md](./rules/vietsub-video-trung.md) | Cổng kiểm chứng từng bước & quy định bắt buộc |
 | Chi tiết kỹ thuật | [technical-pitfalls.md](./references/technical-pitfalls.md) | Giải phẫu 8 lỗi thực chiến & cấu hình chi tiết |
+
+## Triển khai sang máy mới chỉ 3 lệnh
+
+```bash
+git clone https://github.com/trungcaha/Vietsub-video-Trung.git && cd Vietsub-video-Trung
+python setup_machine.py            # Windows: .\install.ps1 | macOS/Linux: ./install.sh
+python setup_machine.py --login dy # Quét QR đăng nhập Douyin lưu vào browser_data/
+```
+
+Các cờ hữu ích khác của `setup_machine.py`: `--doctor` (kiểm tra sức khỏe môi trường), `--skill-only` (chỉ đồng bộ skill/vendor/template/rules & `AGENTS.md`), `--skip-pip`, `--venv-target skill|repo|both`.
 
 ## Quy trình 5 bước
 
@@ -29,11 +40,11 @@ description: >-
    `python scripts/init_project.py --slug <slug> --dest <path> --channel-url "<url>"`
    Sau đó chỉnh sửa `glossary.md` (tên nhân vật, xưng hô) và `roles` trong `project.json`.
 2. **Bước 1 — Tải video kênh**:
-   `<mediacrawler-python> scripts/step1_download_channel.py --project-dir "<proj>"`
-   Tạo `raw/posts_manifest.json`, tách tự động tập lẻ và hợp tập (`duration >= 600s` hoặc từ khóa `合集`/`纯享`).
-3. **Bước 2 — Whisper GPU + F0 + RapidOCR**:
+   `python scripts/step1_download_channel.py --project-dir "<proj>"`
+   Script tự động re-exec sang `.venv` của `MediaCrawler` nếu Python đang chạy thiếu `playwright`/`execjs`, đồng thời hỗ trợ fallback `yt-dlp`. Tạo `raw/posts_manifest.json`, tách tự động tập lẻ và hợp tập (`duration >= 600s` hoặc từ khóa `合集`/`纯享`).
+3. **Bước 2 — Whisper (GPU `float16` / fallback CPU `int8`) + F0 + RapidOCR**:
    `python scripts/step2_transcribe_ocr.py --project-dir "<proj>"`
-   Xuất `transcripts/<ep>_zh.json` (có `f0_hz`, `acoustic_hint`, `hardsub_band`, `hardsub_x_band`) và `_zh.srt`.
+   Xuất `transcripts/<ep>_zh.json` (có `f0_hz`, `acoustic_hint`, `hardsub_band`, `hardsub_x_band`) và `_zh.srt`. Tự fallback mượt sang CPU `int8` nếu máy không có CUDA GPU.
 4. **Bước 3 — Dịch phân vai & QA (`/run-workflow`)**:
    Chạy `run_workflow` với `ScriptPath="<proj>/scripts/step3_workflow_translate.py"`, `Cwd="<proj>"`.
    Cổng kiểm chứng: QA Gate báo **0 lỗi** (khớp 100% số câu, không sót chữ Hán, độ dài không tràn slot).
