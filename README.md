@@ -1,5 +1,7 @@
 # Vietsub-video-Trung
 
+> **Bàn giao & Chạy tiếp nhanh (Handoff):** Xem [HANDOFF.md](HANDOFF.md) để nắm trạng thái hiện tại, lệnh resume ngay trên dự án mẫu `wangwang-miaoba` (**25/42** tập đã kiểm định `ffprobe` + cache **27/100** câu Tập 26), hướng dẫn cài máy mới và 7 chốt kỹ thuật thực chiến.
+
 Bộ **Skill, Workflow, Rule và Template** chuẩn Antigravity giúp tự động hóa trọn gói quy trình tải kênh video Trung / Douyin, nhận diện thoại tiếng Trung (`Whisper large-v3` + `RapidOCR`), dịch phân vai theo ngữ cảnh & cao độ giọng (`f0_hz`), lồng tiếng nhiều vai (`edge-tts`), tạo phụ đề Karaoke quét màu từng từ `\kf` và hòa trộn âm nền tự nhiên bằng **Smart Ducking `O(N)`**.
 
 ## Ảnh kiểm chứng thực tế (Pilot Karaoke `\kf`)
