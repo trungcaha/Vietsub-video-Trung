@@ -441,6 +441,7 @@ def probe_media(path: Path, ffprobe_bin: str = "ffprobe") -> Dict[str, Any]:
         text=True,
         encoding="utf-8",
         check=True,
+        timeout=60,
     )
     return json.loads(res.stdout or "{}")
 

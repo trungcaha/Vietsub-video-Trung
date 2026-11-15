@@ -50,16 +50,17 @@ Tài liệu này giải thích nguyên nhân gốc rễ, triệu chứng và cá
 - **Hiện tượng lỗi:**
   - Truyền `pitch="+10%"` vào `edge_tts.Communicate` gây lỗi WebSocket `NoAudioReceived` (Microsoft TTS chỉ nhận `Hz`, ví dụ `-10Hz`, `+18Hz`).
   - Câu thoại ngắn hoặc có dấu câu cuối kết hợp `pitch != +0Hz` (như `"Được rồi,"`) đôi khi khiến Microsoft TTS trả về rỗng `NoAudioReceived` khi bật `boundary="WordBoundary"`.
+  - Trong `edge-tts` (`7.3.1`), `Communicate.__stream()` truyền `aiohttp.ClientTimeout(sock_read=60)` cho session nhưng không đặt `receive_timeout` trên `session.ws_connect(...)` — `sock_read` không giới hạn frame WebSocket nên kết nối nửa đóng (half-open) làm `async for ch in c.stream():` **treo vô hạn**.
   - `warmup_tts()` dùng `return` sớm trong vòng lặp giọng khiến giọng thứ 2 chưa được khởi động kết nối.
   - Câu dịch có dấu câu/số khiến số token `display_tokens` khác số `WordBoundary` từ TTS -> lệch chữ khi quét `\kf`.
   - Tua âm quá `1.5x` làm giọng bị méo robot.
 - **Cách xử lý chuẩn:**
   1. Validate toàn bộ `roles.*.pitch` phải kết thúc bằng `Hz`.
-  2. `warmup_tts()` duyệt hết danh sách giọng duy nhất, dùng `break` (không `return`) khi nhận chunk audio đầu tiên.
-  3. `WordBoundary` quy đổi giây bằng `offset / 10_000_000.0` và `duration / 10_000_000.0`; áp dụng **retry 3 tầng** (8 lần, backoff `0.25 + min(attempt, 4) * 0.35`):
+  2. Chống treo WebSocket half-open & subprocess: `warmup_tts()` đặt `connect_timeout=8, receive_timeout=12` và bọc `asyncio.wait_for(_warm_once(voice), timeout=12.0)` duyệt đủ mọi giọng; `tts_segment_with_retry()` đặt `connect_timeout=8, receive_timeout=15` và bọc vòng `c.stream()` trong `asyncio.wait_for(_collect_stream(), timeout=20.0)`, log lỗi bằng `repr(e)`. Mọi lệnh `subprocess.run` của FFmpeg/`ffprobe` đều gắn `timeout=` (`probe_media`: `60s`, `atempo`/`pilot`: `60s`, decode/encode WAV: `120s`, `nvenc_cmd`: `600s`, `cpu_cmd`: `900s`).
+  3. `WordBoundary` quy đổi giây bằng `offset / 10_000_000.0` và `duration / 10_000_000.0`; áp dụng **retry 3 tầng** (`max_retries = 10`, backoff `0.25 + min(attempt, 4) * 0.35`):
      - `attempt < 3`: `boundary="WordBoundary"` giữ `(rate, pitch)` của vai (`attempt == 2` strip dấu câu cuối `[,;:\-—….!?]+$` nếu còn ký tự chữ/số).
-     - `attempt 3..5`: fallback sang `boundary="SentenceBoundary"`, giữ nguyên `(rate, pitch)` của vai (`words_json` lưu `[]`).
-     - `attempt >= 6`: `boundary="SentenceBoundary"`, đưa về `rate="+0%"`, `pitch="+0Hz"`, lọc chỉ giữ ký tự chữ/số + khoảng trắng (fallback `"ừ"` nếu rỗng).
+     - `attempt 3..6`: fallback sang `boundary="SentenceBoundary"`, giữ nguyên `(rate, pitch)` của vai (`words_json` lưu `[]`).
+     - `attempt >= 7`: `boundary="SentenceBoundary"`, đưa về `rate="+0%"`, `pitch="+0Hz"`, lọc chỉ giữ ký tự chữ/số + khoảng trắng (fallback `"ừ"` nếu rỗng).
   4. Khi `wb_words` có dữ liệu, khớp `display_tokens` qua `difflib.SequenceMatcher(a=d_norm, b=w_norm, autojunk=False)` và nội suy tuyến tính; khi `not wb_words` (fallback `SentenceBoundary`), `align_display_words` phân bổ `seg_dur` theo **weighted character timing** (`max(2.0, float(len(norm_token(tok)) or len(tok))) + (1.2 if tok[-1] in ",.!?;:" else 0.0)`), giữ đơn điệu và ép `out[-1]["end"] = seg_dur`.
   5. Nếu `raw_dur > avail`, tính `speed = min(atempo_max, raw_dur / avail)` với `atempo_max = 1.48`, nhân chia ngược `w["start"]`, `w["end"]` theo `actual_speed` thực tế của WAV sau `atempo`.
 

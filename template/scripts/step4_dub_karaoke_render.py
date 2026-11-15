@@ -83,6 +83,7 @@ def decode_audio_f32(path: Path, ffmpeg_bin: str, sr: int, channels: int = 1) ->
         ],
         capture_output=True,
         check=True,
+        timeout=120,
     )
     arr = np.frombuffer(res.stdout, dtype=np.float32).copy()
     if channels > 1:
@@ -112,6 +113,7 @@ def encode_wav_pcm16(path: Path, samples: np.ndarray, ffmpeg_bin: str, sr: int, 
         ],
         input=pcm.tobytes(),
         check=True,
+        timeout=120,
     )
 
 
@@ -127,17 +129,27 @@ def validate_roles_pitch(roles_cfg: Dict[str, Any]) -> None:
 
 
 async def warmup_tts(roles_cfg: Dict[str, Any]) -> None:
-    """Khởi động kết nối edge-tts cho toàn bộ các giọng duy nhất (dùng break, không return sớm)."""
+    """Khởi động kết nối edge-tts cho toàn bộ các giọng duy nhất với timeout chống treo."""
+    async def _warm_once(v: str) -> None:
+        c = edge_tts.Communicate(
+            "xin chào",
+            v,
+            boundary="WordBoundary",
+            connect_timeout=8,
+            receive_timeout=12,
+        )
+        async for ch in c.stream():
+            if ch["type"] == "audio":
+                break
+
     voices = sorted({str(v.get("voice") or "vi-VN-HoaiMyNeural") for v in roles_cfg.values()})
     for voice in voices:
         for k in range(4):
             try:
-                c = edge_tts.Communicate("xin chào", voice, boundary="WordBoundary")
-                async for ch in c.stream():
-                    if ch["type"] == "audio":
-                        break
+                await asyncio.wait_for(_warm_once(voice), timeout=12.0)
                 break
-            except Exception:
+            except Exception as e:
+                print(f"  [Warmup retry {k + 1}/4] {voice}: {repr(e)}", flush=True)
                 await asyncio.sleep(0.5 + k * 0.5)
 
 
@@ -146,13 +158,14 @@ async def tts_segment_with_retry(
     role_cfg: Dict[str, Any],
     mp3_path: Path,
     words_json_path: Path,
-    max_retries: int = 8,
+    max_retries: int = 10,
 ) -> List[Dict[str, Any]]:
     """Synthesize Vietnamese TTS via edge-tts with SentenceBoundary fallback.
 
     Short or punctuated utterances with non-zero pitch occasionally return
-    NoAudioReceived under WordBoundary; fall back to SentenceBoundary and
-    neutral prosody before failing.
+    NoAudioReceived under WordBoundary; wrap every WebSocket stream in a strict
+    asyncio.wait_for timeout (aiohttp sock_read does not bound ws_connect) and
+    fall back to SentenceBoundary and neutral prosody before failing.
     """
     if mp3_path.exists() and mp3_path.stat().st_size > 200 and words_json_path.exists():
         return json.loads(words_json_path.read_text(encoding="utf-8"))
@@ -165,7 +178,7 @@ async def tts_segment_with_retry(
     base_rate = role_cfg.get("rate", "+0%")
     base_pitch = role_cfg.get("pitch", "+0Hz")
 
-    last_err = None
+    last_err = ""
     for attempt in range(max_retries):
         if attempt < 3:
             boundary = "WordBoundary"
@@ -176,7 +189,7 @@ async def tts_segment_with_retry(
                 stripped = re.sub(r"[,;:\-—….!?]+$", "", clean_tts).strip()
                 if any(ch.isalnum() for ch in stripped):
                     tts_input = stripped
-        elif attempt < 6:
+        elif attempt < 7:
             boundary = "SentenceBoundary"
             rate = base_rate
             pitch = base_pitch
@@ -199,26 +212,37 @@ async def tts_segment_with_retry(
                 rate=rate,
                 pitch=pitch,
                 boundary=boundary,
+                connect_timeout=8,
+                receive_timeout=15,
             )
-            async for ch in c.stream():
-                if ch["type"] == "audio":
-                    audio_chunks.extend(ch["data"])
-                elif ch["type"] == "WordBoundary":
-                    words.append(
-                        {
-                            "text": str(ch.get("text", "")).strip(),
-                            "start": float(ch.get("offset", 0)) / 10_000_000.0,
-                            "dur": float(ch.get("duration", 0)) / 10_000_000.0,
-                        }
-                    )
+
+            async def _collect_stream() -> None:
+                async for ch in c.stream():
+                    if ch["type"] == "audio":
+                        audio_chunks.extend(ch["data"])
+                    elif ch["type"] == "WordBoundary":
+                        words.append(
+                            {
+                                "text": str(ch.get("text", "")).strip(),
+                                "start": float(ch.get("offset", 0)) / 10_000_000.0,
+                                "dur": float(ch.get("duration", 0)) / 10_000_000.0,
+                            }
+                        )
+
+            await asyncio.wait_for(_collect_stream(), timeout=20.0)
             if len(audio_chunks) > 200:
                 mp3_path.write_bytes(bytes(audio_chunks))
                 words_json_path.write_text(
                     json.dumps(words, ensure_ascii=False), encoding="utf-8"
                 )
                 return words
+            last_err = f"Audio too short ({len(audio_chunks)} bytes)"
         except Exception as e:
-            last_err = e
+            last_err = repr(e)
+        print(
+            f"    [TTS retry {attempt + 1}/{max_retries}] seg={mp3_path.stem}: {last_err}",
+            flush=True,
+        )
         await asyncio.sleep(0.25 + min(attempt, 4) * 0.35)
 
     raise RuntimeError(
@@ -387,6 +411,7 @@ def trim_and_speed_fit(
                 str(fast_wav),
             ],
             check=True,
+            timeout=60,
         )
         y = decode_audio_f32(fast_wav, ffmpeg_bin=ffmpeg_bin, sr=sr, channels=1)
         raw_wav.unlink(missing_ok=True)
@@ -628,6 +653,7 @@ def extract_pilot_frames(
                 str(dst_jpg),
             ],
             check=False,
+            timeout=60,
         )
         if dst_jpg.exists():
             saved.append(dst_jpg)
@@ -733,7 +759,7 @@ async def process_one_episode(
         mp3_p = tmp_ep / f"seg_{sid:03d}.mp3"
         wb_p = tmp_ep / f"seg_{sid:03d}.words.json"
         wb_words = await tts_segment_with_retry(vi_text, roles_cfg[role], mp3_p, wb_p)
-        await asyncio.sleep(0.18)
+        await asyncio.sleep(0.12)
 
         slot_start = max(zh_start, prev_actual_end + 0.03)
         if i + 1 < len(segments):
@@ -885,7 +911,7 @@ async def process_one_episode(
         "+faststart",
         str(out_mp4),
     ]
-    res = subprocess.run(nvenc_cmd, cwd=str(tmp_ep), capture_output=True, text=True)
+    res = subprocess.run(nvenc_cmd, cwd=str(tmp_ep), capture_output=True, text=True, timeout=600)
     if res.returncode != 0:
         print(f"  [Warn] {v_codec} lỗi ({res.stderr[:140]}), fallback CPU...", flush=True)
         cpu_cmd = [
@@ -919,7 +945,7 @@ async def process_one_episode(
             "+faststart",
             str(out_mp4),
         ]
-        subprocess.run(cpu_cmd, cwd=str(tmp_ep), check=True)
+        subprocess.run(cpu_cmd, cwd=str(tmp_ep), check=True, timeout=900)
 
     out_info = probe_media(out_mp4, ffprobe_bin=ffprobe_bin)
     codecs = {s.get("codec_type"): s.get("codec_name") for s in out_info.get("streams") or []}
