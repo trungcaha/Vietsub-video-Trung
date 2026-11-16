@@ -1,0 +1,26 @@
+{
+  "name": "Như",
+  "gender": "Nữ",
+  "region": "Miền Bắc",
+  "tone": "Nữ giọng Hà Nội, điềm tĩnh, tự tin, rõ chữ, nhịp vừa",
+  "source": "Voice preview voice_preview_nhu - calm and confident.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Tin tức / phát thanh",
+    "Review / quảng cáo"
+  ],
+  "video_types": [
+    "Bài giảng · video giải thích kiến thức",
+    "Sách nói giọng Bắc",
+    "Quảng cáo giới thiệu thương hiệu",
+    "Bản tin ngắn"
+  ],
+  "jobs": [
+    "Thuyết minh video kiến thức, bài giảng giọng Bắc",
+    "Đọc quảng cáo trang trọng, đáng tin"
+  ],
+  "how": "\"omni_voice\": \"nhu\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Bài giảng vì sao lá cây màu xanh ~28 giây, đã làm trong"
+}

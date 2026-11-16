@@ -1,0 +1,26 @@
+{
+  "name": "Nhật Phong",
+  "gender": "Nam",
+  "region": "Chưa xác định",
+  "tone": "Nam trầm, ấm, nhịp vừa, kể chuyện cuốn hút, phát âm tròn rõ",
+  "source": "Voice preview voice_preview_nhật phong - narrative & compelling.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Kể chuyện dài",
+    "Truyện ma"
+  ],
+  "video_types": [
+    "Truyện cổ tích · truyện dân gian",
+    "Audio truyện đêm khuya / podcast",
+    "Lời dẫn phim tài liệu",
+    "Truyện ma giọng nam kể (dự phòng)"
+  ],
+  "jobs": [
+    "Kể truyện cổ tích, truyện dài giọng nam",
+    "Dự phòng giọng nam kể cho truyện ma khi không dùng dinh-soan"
+  ],
+  "how": "dialogue.py — dòng dạng nhat-phong|câu thoại",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Đoạn mở truyện cổ tích ~23 giây, đã làm trong"
+}

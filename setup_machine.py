@@ -29,11 +29,16 @@ REPO_ROOT = Path(__file__).resolve().parent
 GEMINI_CFG_DIR = Path.home() / ".gemini" / "config"
 SKILL_NAME = "vietsub-video-trung"
 SKILL_DST = GEMINI_CFG_DIR / "skills" / SKILL_NAME
+OMNI_SKILL_NAME = "g-omnivoice"
+OMNI_SKILL_DST = GEMINI_CFG_DIR / "skills" / OMNI_SKILL_NAME
 AGENTS_MD_PATH = GEMINI_CFG_DIR / "AGENTS.md"
 
 TRIGGER_LINE = (
     '| vietsub-video-trung | "vietsub video trung", "vietsub douyin", '
     '"karaoke sub", "long tieng kenh trung", "dich kenh douyin" |'
+)
+OMNI_TRIGGER_LINE = (
+    '| g-omnivoice | "g-omnivoice", "omnivoice", "clone giong", "tao voice", "thu vien giong" |'
 )
 PREV_TRIGGER_ANCHOR = "| video-translation-editing |"
 
@@ -105,8 +110,42 @@ def _clean_pycache(root: Path) -> None:
         shutil.rmtree(pc, ignore_errors=True)
 
 
+def _insert_trigger_line(lines: List[str], trigger_line: str, anchor: str) -> List[str]:
+    out: List[str] = []
+    inserted = False
+    for line in lines:
+        out.append(line)
+        if not inserted and line.strip().startswith(anchor):
+            out.append(trigger_line)
+            inserted = True
+    if not inserted:
+        table_idx = -1
+        for i, line in enumerate(out):
+            if line.strip().startswith("| Skill |") and i + 1 < len(out):
+                table_idx = i + 1
+                break
+        if table_idx >= 0:
+            j = table_idx + 1
+            while j < len(out) and out[j].strip().startswith("|"):
+                j += 1
+            out.insert(j, trigger_line)
+        else:
+            if out and out[-1].strip():
+                out.append("")
+            out.extend(
+                [
+                    "## Skills & Trigger Keywords",
+                    "",
+                    "| Skill | Trigger when user says |",
+                    "|-------|------------------------|",
+                    trigger_line,
+                ]
+            )
+    return out
+
+
 def update_global_agents_md() -> str:
-    """Chèn dòng trigger vietsub-video-trung vào ~/.gemini/config/AGENTS.md nếu chưa có."""
+    """Chèn dòng trigger vietsub-video-trung và g-omnivoice vào ~/.gemini/config/AGENTS.md nếu chưa có."""
     if not GEMINI_CFG_DIR.exists():
         GEMINI_CFG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -117,56 +156,31 @@ def update_global_agents_md() -> str:
             "| Skill | Trigger when user says |\n"
             "|-------|------------------------|\n"
             f"{TRIGGER_LINE}\n"
+            f"{OMNI_TRIGGER_LINE}\n"
         )
         AGENTS_MD_PATH.write_text(content, encoding="utf-8")
-        return f"Đã tạo mới {AGENTS_MD_PATH} kèm dòng trigger."
+        return f"Đã tạo mới {AGENTS_MD_PATH} kèm trigger."
 
     text = AGENTS_MD_PATH.read_text(encoding="utf-8")
-    if "| vietsub-video-trung |" in text:
+    lines = text.splitlines()
+    changed = False
+    if "| vietsub-video-trung |" not in text:
+        lines = _insert_trigger_line(lines, TRIGGER_LINE, PREV_TRIGGER_ANCHOR)
+        changed = True
+    if (REPO_ROOT / "skills" / OMNI_SKILL_NAME).is_dir() and "| g-omnivoice |" not in "\n".join(lines):
+        lines = _insert_trigger_line(lines, OMNI_TRIGGER_LINE, "| vietsub-video-trung |")
+        changed = True
+
+    if not changed:
         return f"Đã có sẵn trigger trong {AGENTS_MD_PATH} (giữ nguyên)."
 
-    lines = text.splitlines()
-    new_lines: List[str] = []
-    inserted = False
-    for line in lines:
-        new_lines.append(line)
-        if not inserted and line.strip().startswith(PREV_TRIGGER_ANCHOR):
-            new_lines.append(TRIGGER_LINE)
-            inserted = True
-
-    if not inserted:
-        # Fallback nếu máy mới chưa có dòng video-translation-editing
-        table_idx = -1
-        for i, line in enumerate(new_lines):
-            if line.strip().startswith("| Skill |") and i + 1 < len(new_lines):
-                table_idx = i + 1
-                break
-        if table_idx >= 0:
-            j = table_idx + 1
-            while j < len(new_lines) and new_lines[j].strip().startswith("|"):
-                j += 1
-            new_lines.insert(j, TRIGGER_LINE)
-            inserted = True
-        else:
-            if new_lines and new_lines[-1].strip():
-                new_lines.append("")
-            new_lines.extend(
-                [
-                    "## Skills & Trigger Keywords",
-                    "",
-                    "| Skill | Trigger when user says |",
-                    "|-------|------------------------|",
-                    TRIGGER_LINE,
-                ]
-            )
-
     trailing_nl = "\n" if text.endswith("\n") else ""
-    AGENTS_MD_PATH.write_text("\n".join(new_lines) + trailing_nl, encoding="utf-8")
+    AGENTS_MD_PATH.write_text("\n".join(lines) + trailing_nl, encoding="utf-8")
     return f"Đã cập nhật trigger vào {AGENTS_MD_PATH}."
 
 
 def sync_skill_and_vendor() -> Dict[str, int]:
-    """Đồng bộ skill, vendor/MediaCrawler, template, workflows, rules sang ~/.gemini/config/skills/vietsub-video-trung."""
+    """Đồng bộ skill vietsub-video-trung, g-omnivoice, vendor/MediaCrawler, template, workflows, rules."""
     skill_src = REPO_ROOT / "skills" / SKILL_NAME
     if not skill_src.is_dir():
         raise FileNotFoundError(f"Không tìm thấy thư mục skill nguồn: {skill_src}")
@@ -188,6 +202,11 @@ def sync_skill_and_vendor() -> Dict[str, int]:
             skip_root_dirs=VENDOR_SKIP_ROOT_DIRS,
             skip_exts=VENDOR_SKIP_EXTS,
         )
+
+    omni_skill_src = REPO_ROOT / "skills" / OMNI_SKILL_NAME
+    if omni_skill_src.is_dir():
+        stats["g_omnivoice_skill"] = _copy_tree_clean(omni_skill_src, OMNI_SKILL_DST)
+        _clean_pycache(OMNI_SKILL_DST)
 
     _clean_pycache(SKILL_DST)
     return stats
@@ -389,12 +408,49 @@ def run_doctor(project_dir: Optional[str] = None) -> int:
 
     # 8. Installed skill & AGENTS.md trigger
     skill_ok = (SKILL_DST / "SKILL.md").is_file() and (SKILL_DST / "vendor" / "MediaCrawler" / "main.py").is_file()
-    agents_ok = AGENTS_MD_PATH.is_file() and "| vietsub-video-trung |" in AGENTS_MD_PATH.read_text(encoding="utf-8")
+    agents_txt = AGENTS_MD_PATH.read_text(encoding="utf-8") if AGENTS_MD_PATH.is_file() else ""
+    agents_ok = "| vietsub-video-trung |" in agents_txt
     print(f"[{'OK' if skill_ok else 'WARN'}] Skill cục bộ: {SKILL_DST} ({'đầy đủ' if skill_ok else 'chưa cài'})")
     print(f"[{'OK' if agents_ok else 'WARN'}] Trigger AGENTS.md: {AGENTS_MD_PATH} ({'đã bật' if agents_ok else 'chưa có'})")
 
+    # 9. G-OmniVoice Studio & 20 cloned voices
+    omni_dir = REPO_ROOT / "tools" / "g-omnivoice"
+    enh_dir = REPO_ROOT / "tools" / "voice-enhance"
+    if omni_dir.is_dir():
+        voices_root = omni_dir / "voices"
+        valid_voices = sum(
+            1
+            for d in voices_root.iterdir()
+            if d.is_dir() and (d / "ref.wav").is_file() and (d / "ref.txt").is_file() and (d / "meta.json").is_file()
+        ) if voices_root.is_dir() else 0
+        omni_py = _venv_python_for(omni_dir)
+        enh_py = _venv_python_for(enh_dir)
+        env_vi = os.environ.get("OMNIVOICE_MODEL_DIR", "").strip()
+        vi_model = Path(env_vi).expanduser().resolve() if env_vi else (omni_dir / "model")
+        model_ok = (vi_model / "model.safetensors").is_file()
+        omni_skill_ok = (OMNI_SKILL_DST / "SKILL.md").is_file()
+        print(
+            f"[{'OK' if valid_voices >= 20 else 'WARN'}] G-OmniVoice voices: {valid_voices} giọng sẵn sàng | "
+            f".venv={'OK' if omni_py.is_file() else 'NO'} | voice-enhance={'OK' if enh_py.is_file() else 'NO'} | "
+            f"model(vi)={'OK' if model_ok else 'chưa tải'} | skill={'OK' if omni_skill_ok else 'chưa cài'}"
+        )
+
     print(f"=== KẾT QUẢ DOCTOR: {issues} lỗi nghiêm trọng ===")
     return 1 if issues > 0 else 0
+
+
+def run_omnivoice_setup(minimal: bool = False, skip_pip: bool = False) -> int:
+    setup_omni = REPO_ROOT / "tools" / "g-omnivoice" / "setup_omnivoice.py"
+    if not setup_omni.is_file():
+        print(f"[WARN] Không tìm thấy {setup_omni}", flush=True)
+        return 1
+    cmd = [sys.executable, str(setup_omni)]
+    if minimal:
+        cmd.append("--minimal")
+    if skip_pip:
+        cmd.append("--skip-pip")
+    print(f"\n>>> Khởi chạy cài đặt G-OmniVoice: {' '.join(cmd)}", flush=True)
+    return subprocess.run(cmd).returncode
 
 
 def run_login(platform_code: str, project_dir: Optional[str] = None) -> int:
@@ -418,7 +474,7 @@ def run_login(platform_code: str, project_dir: Optional[str] = None) -> int:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Cài đặt đa máy & kiểm tra sức khỏe cho Vietsub-video-Trung"
+        description="Cài đặt đa máy & kiểm tra sức khỏe cho Vietsub-video-Trung & G-OmniVoice"
     )
     parser.add_argument("--doctor", action="store_true", help="Chỉ kiểm tra sức khỏe hệ thống (không cài/sửa)")
     parser.add_argument(
@@ -449,6 +505,21 @@ def main() -> None:
         default="",
         help="Thư mục dự án tùy chọn khi chạy --doctor hoặc --login",
     )
+    parser.add_argument(
+        "--with-omnivoice",
+        action="store_true",
+        help="Cài thêm trọn bộ G-OmniVoice + ClearerVoice 48kHz & tải model weights",
+    )
+    parser.add_argument(
+        "--omnivoice-only",
+        action="store_true",
+        help="Chỉ chạy cài đặt G-OmniVoice (tools/g-omnivoice/setup_omnivoice.py)",
+    )
+    parser.add_argument(
+        "--omnivoice-minimal",
+        action="store_true",
+        help="Dùng kèm --with-omnivoice / --omnivoice-only để chỉ tải model tiếng Việt + ClearerVoice",
+    )
     args = parser.parse_args()
 
     if args.doctor and not args.skill_only and not args.login:
@@ -456,6 +527,9 @@ def main() -> None:
 
     if args.login:
         sys.exit(run_login(args.login.strip(), args.project_dir or None))
+
+    if args.omnivoice_only:
+        sys.exit(run_omnivoice_setup(minimal=args.omnivoice_minimal, skip_pip=args.skip_pip))
 
     print(">>> Bước 1: Đồng bộ Skill + vendor/MediaCrawler + Template + Rules...", flush=True)
     stats = sync_skill_and_vendor()
@@ -480,10 +554,14 @@ def main() -> None:
 
         install_pipeline_packages()
 
+    omni_rc = 0
+    if args.with_omnivoice:
+        omni_rc = run_omnivoice_setup(minimal=args.omnivoice_minimal, skip_pip=args.skip_pip)
+
     print()
     rc = run_doctor(args.project_dir or None)
     print("\nTiếp theo: chạy 'python setup_machine.py --login dy' để đăng nhập Douyin nếu chưa có profile.")
-    sys.exit(rc)
+    sys.exit(1 if (rc != 0 or omni_rc != 0) else 0)
 
 
 if __name__ == "__main__":

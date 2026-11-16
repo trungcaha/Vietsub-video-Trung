@@ -1,0 +1,18 @@
+{
+  "name": "Adam Tốp Tốp",
+  "gender": "Nam",
+  "region": "Miền Nam",
+  "tone": "Giọng hoạt hình hài, lém lỉnh, xưng \"tui\" — đổi tốc độ là ra nhiều vai (bé, mẹ, bác sĩ, người kể)",
+  "source": "VieNeu v4 \"Adam Tốp Tốp\" — câu K2-04 (audio/07.wav, tốc độ 1.0) trong kich-ban-dot-1",
+  "source_kind": "Giọng VieNeu",
+  "status": "Đang dùng",
+  "categories": ["Hoạt hình y khoa hài", "Thiếu nhi / vui nhộn"],
+  "video_types": ["Tinh trùng & trứng, nhân vật cơ thể biết nói", "Remake hoạt hình hài TikTok (dưa leo, giao nhầm địa chỉ…)", "Mẹ bầu / em bé trong bụng kể chuyện", "Affiliate mẹ & bé nhẹ nhàng"],
+  "jobs": [
+    "Giọng cho MỌI vai trong video tinh trùng & trứng / remake-video-hoat-hinh (phân vai bằng tốc độ)",
+    "Tốc độ quen dùng: người kể 0.85 · bác sĩ 0.92 · nhân vật 1.0–1.08 · bé/tinh trùng 1.14"
+  ],
+  "how": "dialogue.py — dòng dạng adam-top-top@1.14|câu thoại (số sau @ là tốc độ)",
+  "note": "Nguồn VieNeu đã sạch — không chạy làm trong ClearerVoice. Giọng mẫu rất to: các script đã tự hạ mức để không vỡ tiếng. Clone từ giọng thương mại VieNeu — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Hội thoại tinh trùng & trứng, 1 giọng 5 vai theo tốc độ"
+}

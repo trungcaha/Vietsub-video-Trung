@@ -1,0 +1,26 @@
+{
+  "name": "Trung",
+  "gender": "Nam",
+  "region": "Chưa xác định",
+  "tone": "Nam trầm thấp, mềm, mượt, kể chuyện chậm rãi, hơi bí ẩn",
+  "source": "Voice preview voice_preview_trung - soft, smooth and narrative.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Truyện ma",
+    "Kể chuyện dài"
+  ],
+  "video_types": [
+    "Truyện ma đêm khuya giọng nam (dự phòng)",
+    "Truyện dân gian · sông nước",
+    "Audio truyện dài / podcast",
+    "Kể chuyện tục ngữ, ca dao"
+  ],
+  "jobs": [
+    "Dự phòng giọng nam trầm cho truyện ma khi không dùng dinh-soan",
+    "Đọc audio truyện dài đêm khuya"
+  ],
+  "how": "dialogue.py — dòng dạng trung|câu thoại",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh. Mẫu gốc chỉ 3,7 giây (dưới 5 giây) — độ giống giọng có thể kém hơn.",
+  "demo_caption": "Truyện ma chèo đò đêm không trăng ~32 giây, đã làm trong"
+}

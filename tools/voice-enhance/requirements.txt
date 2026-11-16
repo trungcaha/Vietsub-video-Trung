@@ -1,0 +1,10 @@
+# Python 3.12 recommended (giữ .venv riêng cho ClearerVoice vì clearvoice==0.1.2 cần numpy==1.26.4 & soundfile==0.12.1)
+# Cài PyTorch trước theo phần cứng (vd CUDA 12.8):
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+# Hoặc chạy trực tiếp: python ../g-omnivoice/setup_omnivoice.py
+
+clearvoice==0.1.2
+numpy==1.26.4
+soundfile==0.12.1
+scipy>=1.11.0,<1.18.0
+huggingface_hub>=0.25.0

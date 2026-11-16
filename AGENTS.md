@@ -5,10 +5,13 @@ Repository này đóng gói trọn bộ **Skill, Workflow, Rule và Template** t
 ## Cấu trúc mã nguồn
 
 - `skills/vietsub-video-trung/` — Antigravity Skill chuẩn (`SKILL.md`, `scripts/init_project.py`, `references/technical-pitfalls.md`).
+- `skills/g-omnivoice/` — Antigravity Skill cho **G-OmniVoice Studio** (`SKILL.md` tra cứu 20 giọng đã clone & câu lệnh tạo voice).
+- `tools/g-omnivoice/` — Bộ công cụ clone & tổng hợp giọng nói tiếng Việt + tiếng Anh (20 giọng đã train/clone sẵn trong `voices/`, `giong-clone.html`, `omni_env.py`, `vn_textnorm.py`, `clone.py`, `dialogue.py`, `clean_voice.py`, `pipelines/tts_omnivoice.py`, `pipelines/tts_phrases.py`, `setup_omnivoice.py`).
+- `tools/voice-enhance/` — Bộ khử tạp âm & phục hồi dải cao 48kHz (`enhance.py`, dùng ClearerVoice trong `.venv` riêng).
 - `vendor/MediaCrawler/` — Mã nguồn sạch `MediaCrawler` tích hợp sẵn (không chứa `.venv`, `browser_data`, cookie hay `.db`), dùng cho Bước 1 tải kênh & đăng nhập QR đa nền tảng.
-- `setup_machine.py`, `install.ps1`, `install.sh` — Bộ cài đặt đa máy tự động (đồng bộ skill + `vendor/MediaCrawler` + `AGENTS.md`, tạo `.venv` MediaCrawler, cài thư viện pipeline & chạy `--doctor` / `--login`).
+- `setup_machine.py`, `install.ps1`, `install.sh` — Bộ cài đặt đa máy tự động (đồng bộ skill + `vendor/MediaCrawler` + `AGENTS.md`, tạo `.venv` MediaCrawler, cài thư viện pipeline & chạy `--doctor` / `--login`, hỗ trợ `--with-omnivoice`).
 - `template/` — Mẫu dự án mới (`project.example.json`, `glossary.example.md`) và bộ 5 script chuẩn hóa trong `template/scripts/`.
-- `workflows/` — Workflow `run_workflow` (`workflow_translate_qa.py`) và runbook 5 bước (`vietsub-karaoke-pipeline.md`).
+- `workflows/` — Workflow `run_workflow` (`workflow_translate_qa.py`, `workflow_omnivoice_tts.py`) và runbook 5 bước (`vietsub-karaoke-pipeline.md`).
 - `rules/vietsub-video-trung.md` — Quy tắc ràng buộc kỹ thuật bắt buộc tuân thủ khi vận hành pipeline.
 - `assets/` — Ảnh kiểm chứng thực tế từ tập Pilot (`demo-karaoke-bo-cho.jpg`, `demo-karaoke-anh-bien.jpg`).
 
@@ -23,7 +26,13 @@ Repository này đóng gói trọn bộ **Skill, Workflow, Rule và Template** t
 7. **Smart Ducking `O(N)`:** Giữ nền `0.85` ngoài thoại, dìm mượt `90ms` (2 lần boxcar `45ms`) về `0.08` tại union `[zh_start-0.10, zh_end+0.12]` và `[vi_start-0.10, vi_end+0.12]`.
 8. **Chạy tuần tự & Cổng Pilot:** Luôn chạy GPU/TTS/FFmpeg tuần tự từng tập; chạy Pilot 1 tập (`--ep ... --pilot-frames`), kiểm tra `ffprobe` + mở 2 ảnh bằng `read_file` trước khi chạy `--all`; xóa `_tmp/<ep_key>` ngay sau mỗi tập.
 
+## Quy tắc G-OmniVoice Studio
+
+1. **Giữ 2 `.venv` tách rời trên Python 3.12:** `tools/g-omnivoice/.venv` (`omnivoice==0.2.1`, `numpy>=2`) và `tools/voice-enhance/.venv` (`clearvoice==0.1.2`, `numpy==1.26.4`, `soundfile==0.12.1`) không được gộp chung.
+2. **Đa máy & tự tải model:** Không hardcode đường dẫn cá nhân; dùng `tools/g-omnivoice/omni_env.py` (`ensure_omni_model`, `get_device_and_dtype`, `run_enhance`, `find_ffmpeg`).
+3. **Chống vỡ tiếng & chuẩn hóa tiếng Việt:** Luôn gọi `vn_textnorm.normalize()` trước khi đưa text vào model tiếng Việt (`lang="vi"`), kéo đỉnh `<= 0.89` / ghi `FLOAT`, và dùng `aresample=48000` (tuyệt đối không dùng `asetrate`).
+
 ## Kiểm tra nhanh khi sửa code
 
-- Không hardcode đường dẫn cá nhân hay secret trong mã nguồn runtime; dùng `config_loader.py` + `project.json` + biến môi trường (`FFMPEG_BIN`, `CUDA_TORCH_LIB`, `MEDIACRAWLER_DIR`, `WORK_ROOT`, `VIETSUB_PROJECT_DIR`).
-- Kiểm tra cú pháp Python với `py_compile` cho script thường và `ast.parse` cho workflow top-level `await` (`workflow_translate_qa.py`, `step3_workflow_translate.py`).
+- Không hardcode đường dẫn cá nhân hay secret trong mã nguồn runtime; dùng `config_loader.py` + `project.json` + biến môi trường (`FFMPEG_BIN`, `CUDA_TORCH_LIB`, `MEDIACRAWLER_DIR`, `WORK_ROOT`, `VIETSUB_PROJECT_DIR`, `OMNIVOICE_MODEL_DIR`, `OMNIVOICE_MODEL_EN_DIR`, `VOICE_ENHANCE_DIR`, `OMNIVOICE_SEP_DIR`).
+- Kiểm tra cú pháp Python với `py_compile` cho script thường và `ast.PyCF_ALLOW_TOP_LEVEL_AWAIT` cho workflow top-level `await` (`workflow_translate_qa.py`, `workflow_omnivoice_tts.py`, `step3_workflow_translate.py`).

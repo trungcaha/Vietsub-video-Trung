@@ -1,0 +1,26 @@
+{
+  "name": "Anh",
+  "gender": "Nam",
+  "region": "Chưa xác định",
+  "tone": "Nam ấm, điềm tĩnh, trầm, nhịp nhanh vừa, phong thái thuyết minh",
+  "source": "Voice preview voice_preview_anh - warm, calm and deep.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Kể chuyện dài",
+    "Tin tức / phát thanh"
+  ],
+  "video_types": [
+    "Thuyết minh phim tài liệu · du lịch",
+    "Giới thiệu nghệ thuật · lịch sử",
+    "Bản tin giọng nam",
+    "Sách nói phi hư cấu"
+  ],
+  "jobs": [
+    "Thuyết minh video tài liệu, lịch sử, danh lam",
+    "Đọc bản tin / điểm tin giọng nam"
+  ],
+  "how": "\"omni_voice\": \"anh\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh. Mẫu có tên riêng tiếng Anh và năm sinh/mất.",
+  "demo_caption": "Thuyết minh Văn Miếu Quốc Tử Giám ~21 giây, đã làm trong"
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Hiền",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Nữ ấm, trầm, rõ chữ, phong thái phát thanh viên / đọc sách nói",
+  "source": "Voice preview voice_preview_hien - warm and deep broadcaster.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Tin tức / phát thanh",
+    "Kể chuyện dài"
+  ],
+  "video_types": [
+    "Bản tin / điểm tin buổi sáng",
+    "Sách nói · tóm tắt sách",
+    "Podcast kể chuyện đời thường",
+    "Video giải thích kiến thức"
+  ],
+  "jobs": [
+    "Đọc bản tin, điểm tin dạng phát thanh",
+    "Đọc sách nói / audio truyện dài giọng nữ"
+  ],
+  "how": "\"omni_voice\": \"hien\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Bản tin buổi sáng ~28 giây, đã làm trong"
+}

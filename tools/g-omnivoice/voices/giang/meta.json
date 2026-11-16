@@ -1,0 +1,26 @@
+{
+  "name": "Giang",
+  "gender": "Nữ",
+  "region": "Chưa xác định (nguồn ghi miền Bắc)",
+  "tone": "Nữ kể chuyện, nhịp nhanh vừa, gần gũi, rõ chữ",
+  "source": "Voice preview voice_preview_giang - northern female narrator.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Kể chuyện dài",
+    "Truyền cảm hứng"
+  ],
+  "video_types": [
+    "Truyện đời thường · truyện cảm động",
+    "Sách nói giọng nữ",
+    "Truyện vượt khó truyền cảm hứng",
+    "Audio truyện thiếu nhi"
+  ],
+  "jobs": [
+    "Đọc audio truyện dài giọng nữ",
+    "Kể truyện vượt khó, nghị lực sống"
+  ],
+  "how": "\"omni_voice\": \"giang\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Truyện cô bé vượt khó đến trường ~24 giây, đã làm trong"
+}

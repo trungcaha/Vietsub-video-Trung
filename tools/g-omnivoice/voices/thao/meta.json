@@ -1,0 +1,26 @@
+{
+  "name": "Thảo",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Nữ mềm, nhẹ, chậm rãi, giàu cảm xúc, hợp văn xuôi trữ tình",
+  "source": "Voice preview voice_preview_thảo - soft, calm and gentle.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Tâm sự",
+    "Kể chuyện dài"
+  ],
+  "video_types": [
+    "Tản văn · truyện ngắn đọc đêm",
+    "Quote chữa lành · tâm sự",
+    "Audio truyện cảm động",
+    "Slideshow ảnh kỷ niệm"
+  ],
+  "jobs": [
+    "Đọc tản văn, truyện ngắn giọng nữ nhẹ nhàng",
+    "Lồng tiếng slideshow tâm sự chữa lành"
+  ],
+  "how": "\"omni_voice\": \"thao\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Tản văn chiều mưa nhớ mẹ ~30 giây, đã làm trong"
+}

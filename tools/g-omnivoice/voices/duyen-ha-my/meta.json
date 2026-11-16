@@ -1,0 +1,18 @@
+{
+  "name": "Duyên Hà My",
+  "gender": "Nữ",
+  "region": "Miền Nam",
+  "tone": "Chững chạc, ra lệnh, kẻ cả — hợp vai sếp / phản diện nữ",
+  "source": "VieNeu v4 \"Duyên Hà My\" — cache Top20 Stickman Việt hoá",
+  "source_kind": "Giọng VieNeu",
+  "status": "Đang dùng",
+  "categories": ["Drama công sở"],
+  "video_types": ["Stickman drama công sở (vai quản lý)", "Phản diện nữ: sếp, mẹ chồng, chị dâu", "Thông báo / quy định nội bộ giọng nghiêm"],
+  "jobs": [
+    "Vai quản lý Hương trong stickman_drama (98 câu ở 18 video)",
+    "Vai đối đầu trong tiểu phẩm 2 người"
+  ],
+  "how": "dialogue.py — dòng dạng duyen-ha-my|câu thoại",
+  "note": "Clone từ giọng thương mại VieNeu — xem điều khoản VieNeu trước khi dùng cho kênh.",
+  "demo_caption": "Hội thoại thử: sếp Hương (giọng này) ↔ Linh"
+}

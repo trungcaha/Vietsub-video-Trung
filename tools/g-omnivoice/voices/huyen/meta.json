@@ -1,0 +1,26 @@
+{
+  "name": "Huyền",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Nữ trung trầm, điềm đạm, thân thiện, phát âm rõ ràng",
+  "source": "Voice preview voice_preview_huyen - calm, friendly and clear.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Truyền cảm hứng",
+    "Tin tức / phát thanh"
+  ],
+  "video_types": [
+    "Mẹo sức khỏe · hướng dẫn từng bước",
+    "Video kiến thức đời sống",
+    "Lời dẫn video tự hào dân tộc",
+    "Bản tin nhẹ nhàng"
+  ],
+  "jobs": [
+    "Đọc video hướng dẫn, mẹo sống khỏe dạng liệt kê",
+    "Lời dẫn video truyền cảm hứng giọng nữ ấm"
+  ],
+  "how": "\"omni_voice\": \"huyen\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Ba bước để ngủ ngon ~26 giây, đã làm trong"
+}

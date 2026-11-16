@@ -1,0 +1,25 @@
+{
+  "omni_voice": "dinh-soan",
+  "omni_enhance": true,
+  "gap": 0.62,
+  "lines": [
+    {
+      "speaker": "NGUOI_KE",
+      "text": "Đêm ba mươi tháng chạp, gió bắc thổi rít qua kẽ vách ngôi miếu cổ ở đầu làng.",
+      "expr": "serious",
+      "scene": "mieu_co"
+    },
+    {
+      "speaker": "BA_LAO",
+      "text": "Cậu đừng bước qua bậu cửa trước giờ Tý, kẻo thứ ở trong đó theo về tận nhà.",
+      "expr": "scared",
+      "scene": "hien_nha"
+    },
+    {
+      "speaker": "NGUOI_KE",
+      "text": "Vừa dứt lời, tiếng chuông đồng từ trên xà nhà bỗng rung lên ba hồi lạnh buốt.",
+      "expr": "tense",
+      "scene": "can_canh"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Ngọc Ly",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Trầm ấm, chậm rãi, kiểu tâm sự / chữa lành",
+  "source": "TikTok @hoangoclynhan (bài ảnh trượt, đã tách nhạc + làm trong)",
+  "source_kind": "Người thật",
+  "status": "Dự phòng",
+  "categories": ["Tâm sự", "Truyện ma"],
+  "video_types": ["Quote · chữa lành · tâm sự đêm", "Truyện cảm động / nhân quả nhẹ", "Truyện ma giọng nữ kể (dự phòng)"],
+  "jobs": [
+    "Dự phòng cho skill truyện ma khi muốn người kể là nữ",
+    "Lồng tiếng slideshow ảnh + nhạc kiểu TikTok tâm sự"
+  ],
+  "how": "\"omni_voice\": \"ngoc-ly\" trong script.json",
+  "note": "Nguồn TikTok bị nén dải cao — luôn để bước làm trong ClearerVoice bật.",
+  "demo_caption": "15 câu Gỡ Ngải, 1 giọng cho mọi vai, đã làm trong"
+}

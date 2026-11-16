@@ -1,0 +1,26 @@
+{
+  "name": "Mai",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Nữ tự nhiên, sáng, nhịp nhanh, nói chuyện gần gũi như người thật",
+  "source": "Voice preview voice_preview_mai - natural, bright and authentic.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Review / quảng cáo",
+    "Drama công sở"
+  ],
+  "video_types": [
+    "Review sản phẩm / affiliate",
+    "Unboxing · trải nghiệm thật",
+    "Tiểu phẩm công sở vai nữ trẻ",
+    "Video TikTok nói trực tiếp"
+  ],
+  "jobs": [
+    "Lồng tiếng review sản phẩm Shopee kiểu người dùng thật",
+    "Vai nhân viên nữ trẻ trong drama công sở"
+  ],
+  "how": "dialogue.py — dòng dạng mai|câu thoại",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Review bình giữ nhiệt ~23 giây, đã làm trong"
+}

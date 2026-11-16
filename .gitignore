@@ -59,3 +59,22 @@ Thumbs.db
 !assets/
 !assets/*.jpg
 !assets/*.png
+
+# Môi trường & model weights nặng của G-OmniVoice / ClearerVoice (tự tải khi chạy setup_omnivoice.py)
+tools/g-omnivoice/.venv/
+tools/g-omnivoice/model/
+tools/g-omnivoice/model-goc/
+tools/g-omnivoice/sep_models/
+tools/g-omnivoice/out/
+tools/g-omnivoice/ref/
+tools/voice-enhance/.venv/
+tools/voice-enhance/checkpoints/
+tools/voice-enhance/outputs/
+
+# BẮT BUỘC giữ nguyên toàn bộ 20 giọng đã train/clone (.wav, .mp3, .txt, .json) & mẫu thử
+!tools/g-omnivoice/voices/
+!tools/g-omnivoice/voices/**
+!tools/g-omnivoice/voices/**/*.wav
+!tools/g-omnivoice/voices/**/*.mp3
+!tools/g-omnivoice/examples/
+!tools/g-omnivoice/examples/**

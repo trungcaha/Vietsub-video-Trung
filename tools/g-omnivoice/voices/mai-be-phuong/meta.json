@@ -1,0 +1,18 @@
+{
+  "name": "Mai Bé Phương",
+  "gender": "Nữ",
+  "region": "Miền Nam",
+  "tone": "Trẻ, trong, phản ứng mạnh — ấm ức, phẫn nộ, đanh lại khi phản công",
+  "source": "VieNeu v4 \"Mai Bé Phương\" — cache Top20 Stickman Việt hoá",
+  "source_kind": "Giọng VieNeu",
+  "status": "Đang dùng",
+  "categories": ["Drama công sở"],
+  "video_types": ["Stickman drama công sở (vai chính bị chèn ép)", "Tiểu phẩm 2 người: nhân viên ↔ sếp", "Nhân vật nữ trẻ: lễ tân, chuyên viên, con dâu"],
+  "jobs": [
+    "Vai nhân viên Linh trong stickman_drama (99 câu ở 18 video)",
+    "Vai \"người bị hại phản công\" trong các drama lật kèo"
+  ],
+  "how": "dialogue.py — dòng dạng mai-be-phuong|câu thoại",
+  "note": "Clone từ giọng thương mại VieNeu — xem điều khoản VieNeu trước khi dùng cho kênh.",
+  "demo_caption": "Hội thoại thử: Linh (giọng này) ↔ sếp Hương"
+}

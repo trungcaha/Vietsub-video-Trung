@@ -1,0 +1,26 @@
+{
+  "name": "Dũng",
+  "gender": "Nam",
+  "region": "Chưa xác định",
+  "tone": "Nam trầm, vang, chậm, chất thơ, ngân nga cảm xúc",
+  "source": "Voice preview voice_preview_dũng - poetic, deep and resonant.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Thơ / ca dao",
+    "Tâm sự"
+  ],
+  "video_types": [
+    "Ngâm thơ · đọc ca dao",
+    "Video quê hương · gia đình",
+    "Tâm sự đêm giọng nam",
+    "Lời dẫn video Vu Lan, ngày của mẹ"
+  ],
+  "jobs": [
+    "Đọc thơ, ca dao, tản văn về quê hương",
+    "Lời dẫn video cảm động về cha mẹ"
+  ],
+  "how": "\"omni_voice\": \"dung\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh. Mẫu gốc chỉ 4,7 giây (dưới 5 giây) — độ giống giọng có thể kém hơn.",
+  "demo_caption": "Tản văn quê hương ~26 giây, đã làm trong"
+}

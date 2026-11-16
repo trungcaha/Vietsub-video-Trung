@@ -1,0 +1,26 @@
+{
+  "name": "Ngân (trong trẻo)",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Nữ trẻ, trong trẻo, cao, nhí nhảnh, nhiều năng lượng",
+  "source": "Voice preview voice_preview_ngan - cute, bubbly and authentic.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Thiếu nhi / vui nhộn",
+    "Review / quảng cáo"
+  ],
+  "video_types": [
+    "Review quán ăn · cà phê",
+    "Hoạt hình vui nhộn vai nhân vật dễ thương",
+    "Video thiếu nhi",
+    "TikTok vlog đời thường"
+  ],
+  "jobs": [
+    "Lồng tiếng review quán ăn, đồ ăn vặt kiểu Gen Z",
+    "Vai nhân vật cute trong hoạt hình hài"
+  ],
+  "how": "dialogue.py — dòng dạng ngan-bubbly|câu thoại",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Review tiệm bánh siêu xinh ~27 giây, đã làm trong"
+}

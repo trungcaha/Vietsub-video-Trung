@@ -1,0 +1,26 @@
+{
+  "name": "Ngân Nguyễn",
+  "gender": "Nữ",
+  "region": "Chưa xác định",
+  "tone": "Nữ trầm ấm, truyền cảm, nhịp chậm rãi, nhấn nhá kiểu narrator truyền cảm hứng",
+  "source": "Voice preview voice_preview_ngân nguyễn - inspirational narrator.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Truyền cảm hứng",
+    "Tâm sự"
+  ],
+  "video_types": [
+    "Video truyền cảm hứng / phát triển bản thân",
+    "Quote · chữa lành · tâm sự đêm",
+    "Slideshow ảnh + nhạc kiểu TikTok",
+    "Lời dẫn phim tài liệu nhẹ nhàng"
+  ],
+  "jobs": [
+    "Đọc lời dẫn cho video động lực, quote buổi sáng",
+    "Lồng tiếng slideshow chữa lành thay cho Ngọc Ly khi cần giọng sáng hơn"
+  ],
+  "how": "\"omni_voice\": \"ngan-nguyen\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Đoạn văn truyền cảm hứng ~32 giây, đã làm trong"
+}

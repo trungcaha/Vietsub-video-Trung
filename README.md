@@ -1,6 +1,31 @@
-# Vietsub-video-Trung
+# Vietsub-video-Trung & G-OmniVoice Studio
 
-> **Bàn giao & Chạy tiếp nhanh (Handoff):** Xem [HANDOFF.md](HANDOFF.md) để nắm trạng thái hiện tại, lệnh resume ngay trên dự án mẫu `wangwang-miaoba` (**25/42** tập đã kiểm định `ffprobe` + cache **27/100** câu Tập 26), hướng dẫn cài máy mới và 7 chốt kỹ thuật thực chiến.
+> **Cài trọn bộ sang máy mới trong 1 lệnh:**
+> - **Cài cả Vietsub + G-OmniVoice + 20 giọng + toàn bộ model:** `python setup_machine.py --with-omnivoice`
+> - **Chỉ cài riêng G-OmniVoice & ClearerVoice 48kHz:** `python tools/g-omnivoice/setup_omnivoice.py` (hoặc thêm `--minimal` nếu chỉ cần model tiếng Việt)
+>
+> **Bàn giao Vietsub (`wangwang-miaoba`):** Xem [HANDOFF.md](HANDOFF.md) | **Hướng dẫn G-OmniVoice & bảng 20 giọng:** Xem [tools/g-omnivoice/README.md](tools/g-omnivoice/README.md) & mở trực tiếp [tools/g-omnivoice/giong-clone.html](tools/g-omnivoice/giong-clone.html).
+
+---
+
+## Mới: G-OmniVoice Studio + Thư Viện 20 Giọng Đã Clone Sẵn
+
+Kho lưu trữ hiện đóng gói sẵn toàn bộ dự án **G-OmniVoice + ClearerVoice 48kHz** cùng **20 giọng nói đã train/clone hoàn chỉnh** trong [tools/g-omnivoice/voices/](tools/g-omnivoice/voices) (`dinh-soan`, `ngoc-ly`, `adam-top-top`, `duyen-ha-my`, `mai-be-phuong`, `en-playful-story`, `anh`, `dung`, `giang`, `hien`, `hoang-dang`, `huyen`, `mai`, `ngan-bubbly`, `ngan-nguyen`, `nhat-phong`, `nhu`, `quang-nguyen`, `thao`, `trung`).
+
+```bash
+# 1. Cài 2 .venv Python 3.12 + tự tải model weights từ HuggingFace + kiểm tra sức khỏe
+python tools/g-omnivoice/setup_omnivoice.py
+
+# 2. Tạo ngay giọng đọc 48kHz sạch từ bất kỳ giọng nào trong 20 giọng
+tools/g-omnivoice/.venv/Scripts/python.exe tools/g-omnivoice/clone.py \
+  --voice dinh-soan --text "Xin chào, hệ thống G Omni Voice đã sẵn sàng." --out demo.wav --enhance
+```
+
+*(Chi tiết toàn bộ CLI `clone.py`, `dialogue.py`, `clean_voice.py`, `pipelines/tts_omnivoice.py`, `pipelines/tts_phrases.py` và workflow `workflows/workflow_omnivoice_tts.py` xem tại [tools/g-omnivoice/README.md](tools/g-omnivoice/README.md).)*
+
+---
+
+## Bộ Pipeline Vietsub Karaoke `\kf` & Lồng Tiếng Smart Ducking
 
 Bộ **Skill, Workflow, Rule và Template** chuẩn Antigravity giúp tự động hóa trọn gói quy trình tải kênh video Trung / Douyin, nhận diện thoại tiếng Trung (`Whisper large-v3` + `RapidOCR`), dịch phân vai theo ngữ cảnh & cao độ giọng (`f0_hz`), lồng tiếng nhiều vai (`edge-tts`), tạo phụ đề Karaoke quét màu từng từ `\kf` và hòa trộn âm nền tự nhiên bằng **Smart Ducking `O(N)`**.
 
@@ -37,10 +62,16 @@ vietsub-video-trung/
 │   └── vietsub-video-trung.md
 ├── workflows/
 │   ├── workflow_translate_qa.py
+│   ├── workflow_omnivoice_tts.py
 │   └── vietsub-karaoke-pipeline.md
 ├── vendor/
 │   └── MediaCrawler/          # Mã nguồn sạch tích hợp sẵn (~4.3 MB, không cookie/venv/db)
+├── tools/
+│   ├── g-omnivoice/           # Bộ G-OmniVoice + 20 giọng clone (voices/) + giong-clone.html + setup_omnivoice.py
+│   └── voice-enhance/         # ClearerVoice 48kHz (enhance.py)
 ├── skills/
+│   ├── g-omnivoice/
+│   │   └── SKILL.md
 │   └── vietsub-video-trung/
 │       ├── SKILL.md
 │       ├── scripts/

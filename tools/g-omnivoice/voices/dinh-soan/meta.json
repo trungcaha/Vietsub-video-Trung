@@ -1,0 +1,18 @@
+{
+  "name": "Đình Soạn",
+  "gender": "Nam",
+  "region": "Miền Nam",
+  "tone": "Trầm, kể chuyện đêm khuya, nhịp nhanh vừa, nhấn nhá rùng rợn",
+  "source": "YouTube SVNyl5x8wBw — kênh Truyện Đình Soạn",
+  "source_kind": "Người thật",
+  "status": "Mặc định",
+  "categories": ["Truyện ma", "Kể chuyện dài"],
+  "video_types": ["Truyện ma dân gian 20–45 phút", "Bùa ngải · đầu thai · báo oán", "Tâm linh nhân quả", "Audio truyện đêm khuya / podcast"],
+  "jobs": [
+    "Giọng duy nhất cho MỌI dòng của skill hoat-hinh-truyen-ma-dan-gian (lời dẫn + thoại nhân vật)",
+    "Đọc lời dẫn trường đoạn tranh mực giấy dó (truyền thuyết, nguồn gốc bùa ngải)"
+  ],
+  "how": "tts_omnivoice.py (mặc định, không cần khai báo)",
+  "note": "Giọng của người thật cùng thể loại — có rủi ro bị báo cáo bản quyền/mạo danh nếu chưa xin phép.",
+  "demo_caption": "15 câu Gỡ Ngải qua đúng quy trình skill"
+}

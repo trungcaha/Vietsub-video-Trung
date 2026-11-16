@@ -1,0 +1,18 @@
+{
+  "name": "Playful Story (EN)",
+  "gender": "Nữ",
+  "region": "Tiếng Anh (Mỹ)",
+  "tone": "Giọng PlayfulGirl lúc kể trọn một truyện: ngắt nghỉ tự nhiên, lên xuống theo câu, ấm hơn bản câu lẻ",
+  "source": "MiniMax English_PlayfulGirl — truyện 01 \"Jack and the Red Box\" (Callan English stories-full-audio)",
+  "source_kind": "Giọng MiniMax",
+  "status": "Mới clone",
+  "categories": ["Tiếng Anh", "Kể chuyện dài"],
+  "video_types": ["Đọc trọn truyện tiếng Anh cho trẻ (stories 1–2 phút)", "Audio book thiếu nhi tiếng Anh", "Video hoạt hình kể chuyện tiếng Anh"],
+  "jobs": [
+    "Đọc lời dẫn cho bộ stories-full-audio của Callan English (thay MiniMax)",
+    "Giọng tiếng Anh chính của thư viện: dẫn truyện, câu hỏi, lời khen cho app Callan English"
+  ],
+  "how": "clone.py voices/en-playful-story/ref.wav voices/en-playful-story/ref.txt <văn bản.txt> <ra.wav> en",
+  "note": "Tiếng Anh: dùng tham số en (model gốc) và KHÔNG chạy làm trong ClearerVoice — nguồn đã sạch, làm trong làm giọng sáng gấp đôi bản gốc. Clone từ giọng thương mại MiniMax — xem điều khoản trước khi dùng.",
+  "demo_caption": "Truyện thỏ con, bản clone thô (khớp độ sáng giọng gốc)"
+}

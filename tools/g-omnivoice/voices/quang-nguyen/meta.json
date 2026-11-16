@@ -1,0 +1,26 @@
+{
+  "name": "Quang Nguyên",
+  "gender": "Nam",
+  "region": "Chưa xác định",
+  "tone": "Nam ấm, nhịp nhanh, năng động, nhấn chữ rõ, hợp lời nói trực tiếp với người xem",
+  "source": "Voice preview voice_preview_quang nguyen - warm and dynamic.mp3",
+  "source_kind": "Giọng preview ElevenLabs",
+  "status": "Mới clone",
+  "categories": [
+    "Review / quảng cáo",
+    "Truyền cảm hứng"
+  ],
+  "video_types": [
+    "Review sản phẩm / affiliate",
+    "Mẹo sống · thói quen tốt",
+    "Video ngắn TikTok/Reels nói trực tiếp",
+    "Quảng cáo giới thiệu dịch vụ"
+  ],
+  "jobs": [
+    "Lồng tiếng review sản phẩm, mẹo hay dạng Shorts",
+    "Lời dẫn video động lực giọng nam"
+  ],
+  "how": "\"omni_voice\": \"quang-nguyen\" trong script.json",
+  "note": "Clone từ preview giọng thương mại ElevenLabs — xem điều khoản trước khi dùng cho kênh.",
+  "demo_caption": "Mẹo thói quen buổi sáng ~24 giây, đã làm trong (mẫu gốc chỉ 3,3 giây)"
+}
